@@ -55,6 +55,7 @@ public:
     u8 read(Address addr);
     void push(u8 data);
     u8 pop();
+    void print_regs();
     void execute_inst(Instruction inst);
 };
 
