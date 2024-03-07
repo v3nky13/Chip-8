@@ -61,20 +61,20 @@ u8 Chip8::pop() {
 }
 
 void Chip8::emulate_inst() {
-    /* Fetch, decode and execute a chip-8 instruction */
+    // Fetch, decode and execute a chip-8 instruction
 
     // TODO:
     // DXYN - draw on screen
     // FX0A - wait for key input
-    // chip8 variant changes for following (read guide & queso):
+    // chip8 variant changes for the following (read guide & queso):
     // 8XY1, 8XY2, 8XY3, 8XY6, 8XYE, BNNN, FX55, FX65
 
-    /* fetch */
+    // fetch
     u16 opcode = (read(PC) << 8) + read(PC + 1);
     PC += 2;
     printf("[%04X]:\n", opcode); // to be removed
 
-    /* decode */
+    // decode
     inst.kind = opcode >> 12;
     inst.NNN = opcode & 0x0FFF;
     inst.NN = opcode & 0x00FF;
@@ -82,7 +82,7 @@ void Chip8::emulate_inst() {
     inst.X = (opcode & 0x0F00) >> 8;
     inst.Y = (opcode & 0x00F0) >> 4;
 
-    /* execute */
+    // execute
     switch (inst.kind) { // switch b/w diff instruction kinds
         case 0x0:
             switch (inst.NNN) {
