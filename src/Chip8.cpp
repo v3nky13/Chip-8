@@ -70,19 +70,21 @@ void Chip8::execute_inst(Instruction inst) {
     // Assuming inst is a valid chip-8 instruction
 
     // todo:
-    // 0NNN
-    // 00E0
-    // DXYN
-    // E---
-    // FX0A
-    // FX29
-    // FX33
+    // 0NNN - vaana sanam idk what to do with this one
+    // 00E0 - clear display
+    // DXYN - draw on screen
+    // E--- - shouldnt work well
+    // FX0A - kunna
+    // FX29 - kunna
+    // FX33 - kunna
+    // ithonnm nadakkm enn thonanilla
 
     switch (inst.opcode) {
         case 0x0:   // haven't implemented 0NNN
             switch (inst.N) {
                 // 00E0
                 case 0x0:
+
                     break;  //todo
                 
                 // 00EE
