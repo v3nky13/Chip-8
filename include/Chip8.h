@@ -9,7 +9,7 @@ typedef uint32_t u32;
 typedef uint16_t Address;
 
 struct Instruction {
-    u16 opcode; // 16-bit opcode
+    u8 kind;    //  4-bit inst kind
     u16 NNN;    // 12-bit address/constant
     u8 NN;      //  8-bit constant
     u8 N;       //  4-bit constant
@@ -49,6 +49,10 @@ private:
     // Whether screen be updated? (yes/no)
     bool draw;
 
+    // stack operations
+    void push(u8 data);
+    u8 pop();
+
 public:
     Chip8();
 
@@ -56,15 +60,8 @@ public:
     void write(Address addr, u8 data);
     u8 read(Address addr);
 
-    // stack operations
-    void push(u8 data);
-    u8 pop();
-    
-    // CPU operations
-    void fetch();
-    void execute();
+    void emulate_inst();
 
-    // for debug
     void print_regs();
 };
 
