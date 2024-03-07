@@ -68,15 +68,16 @@ void Chip8::print_regs() {
 
 void Chip8::execute_inst(Instruction inst) {
     // Assuming inst is a valid chip-8 instruction
+    // gonna get fucked in the arse
 
     // todo:
     // 0NNN - vaana sanam idk what to do with this one
     // 00E0 - clear display
     // DXYN - draw on screen
     // E--- - shouldnt work well
-    // FX0A - kunna
-    // FX29 - kunna
-    // FX33 - kunna
+    // FX0A - kunna1
+    // FX29 - kunna2
+    // FX33 - kunna3
     // ithonnm nadakkm enn thonanilla
 
     switch (inst.opcode) {
