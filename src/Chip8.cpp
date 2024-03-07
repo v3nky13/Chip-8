@@ -303,8 +303,6 @@ void Chip8::emulate_inst() {
                 }
                 break;
     }
-
-    print_regs(); // to be removed
 }
 
 void Chip8::print_regs() {

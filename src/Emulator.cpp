@@ -14,8 +14,11 @@ int main() {
     chip8.write(0x205, 0x44);
 
     chip8.emulate_inst();
+    chip8.print_regs();
     chip8.emulate_inst();
+    chip8.print_regs();
     chip8.emulate_inst();
+    chip8.print_regs();
 
     return 0;
 }
