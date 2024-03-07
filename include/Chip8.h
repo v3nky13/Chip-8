@@ -9,7 +9,7 @@ typedef uint32_t u32;
 typedef uint16_t Address;
 
 struct Instruction {
-    u8 opcode;  //  4-bit opcode
+    u16 opcode; // 16-bit opcode
     u16 NNN;    // 12-bit address/constant
     u8 NN;      //  8-bit constant
     u8 N;       //  4-bit constant
@@ -56,8 +56,8 @@ public:
     void push(u8 data);
     u8 pop();
     void print_regs();
-    void fetch_inst();
-    void execute_inst();
+    void fetch();
+    void execute();
 };
 
 #endif

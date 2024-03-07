@@ -24,25 +24,26 @@ Chip8::Chip8() {
     };
 
     // init entire chip8 machine
-    std::memset(this, 0, sizeof(Chip8));
+    memset(this, 0, sizeof(Chip8));
 
-    // load font sprites to ram at address 0x050
-    std::memcpy(ram + 0x050, font_sprites, sizeof(font_sprites));
+    // load font sprites to ram at address 0x000
+    memcpy(ram, font_sprites, sizeof(font_sprites));
 
     // set chip8 machine defaults
     PC = 0x200;     // Start PC at ROM entry point which is at 0x200
+    SP = 63;        // Empty stack
 
     srand(time(NULL));
 }
 
 void Chip8::write(Address addr, u8 data) {
-    if (addr < 0 || addr > 4095)
+    if (addr < 0x000 || addr > 0xFFF)
         return;
     ram[addr] = data;
 }
 
 u8 Chip8::read(Address addr) {
-    if (addr < 0 || addr > 4095)
+    if (addr < 0x000 || addr > 0xFFF)
         return 0;
     return ram[addr];
 }
@@ -59,20 +60,15 @@ u8 Chip8::pop() {
     return stack[SP++];
 }
 
-void Chip8::fetch_inst() {
-    u16 fetched_inst = (read(PC) << 8) + read(PC + 1);
-    printf("%04X:\n", fetched_inst);
-
+void Chip8::fetch() {
+    inst.opcode = (read(PC) << 8) + read(PC + 1);
+    inst.NNN = inst.opcode & 0x0FFF;
+    inst.NN = inst.opcode & 0x00FF;
+    inst.N = inst.opcode & 0x000F;
+    inst.X = (inst.opcode & 0x0F00) >> 8;
+    inst.Y = (inst.opcode & 0x00F0) >> 4;
     PC += 2;
-
-    inst = {
-        (u8)  ((fetched_inst & 0xF000) >> 12),
-        (u16) ((fetched_inst & 0x0FFF) >>  0),
-        (u8)  ((fetched_inst & 0x00FF) >>  0),
-        (u8)  ((fetched_inst & 0x000F) >>  0),
-        (u8)  ((fetched_inst & 0x0F00) >>  8),
-        (u8)  ((fetched_inst & 0x00F0) >>  4)
-    };
+    printf("[%04X]:\n", inst.opcode);
 }
 
 void Chip8::print_regs() {
@@ -82,30 +78,27 @@ void Chip8::print_regs() {
     printf("\n");
 }
 
-void Chip8::execute_inst() {
-    // Assuming inst is a valid chip-8 instruction
-    // gonna get fucked in the arse
+void Chip8::execute() {
+    // This function both decodes and well as executes inst,
+    // assuming inst is a valid chip-8 instruction.
+    // (this gonna get us fucked in the arse fo sho)
 
-    // todo:
-    // 0NNN - vaana sanam idk what to do with this one
-    // 00E0 - clear display
+    // TODO:
     // DXYN - draw on screen
-    // E--- - shouldnt work well
-    // FX0A - kunna1
-    // FX29 - kunna2
-    // FX33 - kunna3
-    // ithonnm nadakkm enn thonanilla
+    // FX0A - kirikk sanam
 
-    switch (inst.opcode) {
-        case 0x0:   // haven't implemented 0NNN
-            switch (inst.N) {
+    // switch b/w diff opcode categories
+    switch (inst.opcode >> 12) {
+        case 0x0:
+            switch (inst.NNN) {
                 // 00E0
-                case 0x0:
-
-                    break;  //todo
+                case 0x0E0:
+                    memset(&display[0], false, sizeof(display));
+                    draw = true;
+                    break;
                 
                 // 00EE
-                case 0xE:
+                case 0x0EE:
                     PC = pop();
                     break;
             }
@@ -134,6 +127,8 @@ void Chip8::execute_inst() {
         
         // 5XY0
         case 0x5:
+            if (inst.N != 0x0)
+                return;
             if (V[inst.X] == V[inst.Y])
                 PC += 2;
 
@@ -142,50 +137,58 @@ void Chip8::execute_inst() {
             V[inst.X] = inst.NN;
             break;
         
-        //7XNN
+        // 7XNN
         case 0x7:
             V[inst.X] += inst.NN;
             break;
 
         case 0x8:
-            switch (inst.N)
-            {
+            switch (inst.N) {
+                // 8XY0
                 case 0x0:
                     V[inst.X] = V[inst.Y];
                     break;
 
+                // 8XY1
                 case 0x1:
-                    V[inst.X] = V[inst.X] | V[inst.Y];
+                    V[inst.X] |= V[inst.Y];
                     break;
 
+                // 8XY2
                 case 0x2:
-                    V[inst.X] = V[inst.X] & V[inst.Y];
+                    V[inst.X] &= V[inst.Y];
                     break;
 
+                // 8XY3
                 case 0x3:
-                    V[inst.X] = V[inst.X] ^ V[inst.Y];
+                    V[inst.X] ^= V[inst.Y];
                     break;
 
+                // 8XY4
                 case 0x4:
                     V[0xF] = V[inst.X] + V[inst.Y] > 255;
                     V[inst.X] += V[inst.Y];
                     break;
 
+                // 8XY5
                 case 0x5:
                     V[inst.X] = abs(V[inst.X] - V[inst.Y]);
                     V[0xF] = V[inst.X] >= V[inst.Y];
                     break;
 
+                // 8XY6
                 case 0x6:
                     V[0xF] = V[inst.X] & 0x1;
                     V[inst.X] >>= 1;
                     break;
 
+                // 8XY7
                 case 0x7:
                     V[inst.X] = abs(V[inst.Y] - V[inst.X]);
                     V[0xF] = V[inst.Y] >= V[inst.X];
                     break;
-                
+
+                // 8XYE                
                 case 0xE:
                     V[0xF] = (V[inst.X] & 0x80) >> 7;
                     V[inst.X] <<= 1;
@@ -195,9 +198,10 @@ void Chip8::execute_inst() {
 
             // 9XY0
             case 0x9:
-                if (V[inst.X] != V[inst.Y]) {
+                if (inst.N != 0x0)
+                    return;
+                if (V[inst.X] != V[inst.Y])
                     PC += 2;
-                }
                 break;
 
             // ANNN
@@ -216,11 +220,11 @@ void Chip8::execute_inst() {
                 break;
 
             // DXYN
-            case 0xD:   // valiya sanam aanu sookshichu kaikaryam cheyyanam
+            case 0xD:
 
                 break;
             
-            case 0xE: // ith andi sanam rework cheyyanam
+            case 0xE:
                 switch (inst.NN) {
                     // EX9E
                     case 0x9E:
@@ -234,7 +238,7 @@ void Chip8::execute_inst() {
                             PC += 2;
                         break;
                 }
-            break;
+                break;
 
             case 0xF:
                 switch (inst.NN) {
@@ -244,8 +248,20 @@ void Chip8::execute_inst() {
                         break;
                     
                     // FX0A
-                    case 0x0A:  // implement this later vaname
+                    case 0x0A:
 
+                        // --- A brain rotten idea for this part ---
+
+                        // func (v *VM) insLDxK(reg uint8) {
+                        //     if len(v.Keys) > 0 {
+                        //         // Get last key pressed if there are multiple and exit the PC loop
+                        //         v.registers[reg] = v.Keys[0]
+                        //         return
+                        //     }
+                        //     // Madness, *decrement* the PC to keep the fetch loop waiting here
+                        //     v.pc -= 2
+                        // }
+                        
                         break;
 
                     // FX15
@@ -264,13 +280,15 @@ void Chip8::execute_inst() {
                         break;
                     
                     // FX29
-                    case 0x29:  // implement these 2 later vanangale
-
+                    case 0x29:
+                        I = V[inst.X] * 5;
                         break;
                     
                     // FX33
                     case 0x33:
-
+                        ram[I] = V[inst.X] / 100;
+                        ram[I + 1] = V[inst.X] % 100 / 10;
+                        ram[I + 2] = V[inst.X] % 100;
                         break;
                     
                     // FX55
@@ -287,6 +305,7 @@ void Chip8::execute_inst() {
                         I += inst.X + 1;
                         break;
                 }
+                break;
     }
 
     print_regs();
