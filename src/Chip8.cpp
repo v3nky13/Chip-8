@@ -79,13 +79,11 @@ void Chip8::print_regs() {
 }
 
 void Chip8::execute() {
-    // This function both decodes and well as executes inst,
-    // assuming inst is a valid chip-8 instruction.
-    // (this gonna get us fucked in the arse fo sho)
+    // This function both decodes and well as executes current inst
 
     // TODO:
     // DXYN - draw on screen
-    // FX0A - kirikk sanam
+    // FX0A - wait for key input
 
     // switch b/w diff opcode categories
     switch (inst.opcode >> 12) {
@@ -93,7 +91,7 @@ void Chip8::execute() {
             switch (inst.NNN) {
                 // 00E0
                 case 0x0E0:
-                    memset(&display[0], false, sizeof(display));
+                    memset(display, false, sizeof(display));
                     draw = true;
                     break;
                 
@@ -261,7 +259,7 @@ void Chip8::execute() {
                         //     // Madness, *decrement* the PC to keep the fetch loop waiting here
                         //     v.pc -= 2
                         // }
-                        
+
                         break;
 
                     // FX15

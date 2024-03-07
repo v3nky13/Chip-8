@@ -51,13 +51,21 @@ private:
 
 public:
     Chip8();
+
+    // memory operations
     void write(Address addr, u8 data);
     u8 read(Address addr);
+
+    // stack operations
     void push(u8 data);
     u8 pop();
-    void print_regs();
+    
+    // CPU operations
     void fetch();
     void execute();
+
+    // for debug
+    void print_regs();
 };
 
 #endif
