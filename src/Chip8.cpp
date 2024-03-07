@@ -304,12 +304,12 @@ void Chip8::emulate_inst() {
                 break;
     }
 
-    print_regs(); printf("\n"); // to be removed
+    print_regs(); // to be removed
 }
 
 void Chip8::print_regs() {
     printf("[PC]: %03X [SP]: %03X [I]: %03X\n", PC, SP, I);
     for (int i = 0; i < 16; i++)
         printf("[V%X]: %02X ", i, V[i]);
-    printf("\n");
+    printf("\n\n");
 }
