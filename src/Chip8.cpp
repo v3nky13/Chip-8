@@ -59,6 +59,22 @@ u8 Chip8::pop() {
     return stack[SP++];
 }
 
+void Chip8::fetch_inst() {
+    u16 fetched_inst = (read(PC) << 8) + read(PC + 1);
+    printf("%04X:\n", fetched_inst);
+
+    PC += 2;
+
+    inst = {
+        (u8)  ((fetched_inst & 0xF000) >> 12),
+        (u16) ((fetched_inst & 0x0FFF) >>  0),
+        (u8)  ((fetched_inst & 0x00FF) >>  0),
+        (u8)  ((fetched_inst & 0x000F) >>  0),
+        (u8)  ((fetched_inst & 0x0F00) >>  8),
+        (u8)  ((fetched_inst & 0x00F0) >>  4)
+    };
+}
+
 void Chip8::print_regs() {
     printf("PC: %03X SP: %03X I: %03X\n", PC, SP, I);
     for (int i = 0; i < 16; i++)
@@ -66,7 +82,7 @@ void Chip8::print_regs() {
     printf("\n");
 }
 
-void Chip8::execute_inst(Instruction inst) {
+void Chip8::execute_inst() {
     // Assuming inst is a valid chip-8 instruction
     // gonna get fucked in the arse
 

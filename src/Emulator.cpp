@@ -5,22 +5,20 @@
 int main() {
     Chip8 chip8;
 
-    u16 sample_insts[] = {0x63F0, 0x64E0, 0x8344};
+    // chip8 insts are stored big-endian
+    chip8.write(0x200, 0x63);
+    chip8.write(0x201, 0xF0);
+    chip8.write(0x202, 0x64);
+    chip8.write(0x203, 0xE0);
+    chip8.write(0x204, 0x83);
+    chip8.write(0x205, 0x44);
 
-    for (auto inst: sample_insts) {
-        printf("%04X:\n", inst);
-
-        Instruction curr_inst = {
-            (u8) ((inst & 0xF000) >> 12),
-            (u8) ((inst & 0x0FFF) >>  0),
-            (u8) ((inst & 0x00FF) >>  0),
-            (u8) ((inst & 0x000F) >>  0),
-            (u8) ((inst & 0x0F00) >>  8),
-            (u8) ((inst & 0x00F0) >>  4)
-        };
-
-        chip8.execute_inst(curr_inst);
-    }
+    chip8.fetch_inst();
+    chip8.execute_inst();
+    chip8.fetch_inst();
+    chip8.execute_inst();
+    chip8.fetch_inst();
+    chip8.execute_inst();
 
     return 0;
 }

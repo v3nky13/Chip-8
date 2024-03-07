@@ -56,7 +56,8 @@ public:
     void push(u8 data);
     u8 pop();
     void print_regs();
-    void execute_inst(Instruction inst);
+    void fetch_inst();
+    void execute_inst();
 };
 
 #endif
