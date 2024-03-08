@@ -8,15 +8,6 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint16_t Address;
 
-struct Instruction {
-    u8 kind;    //  4-bit inst kind
-    u16 NNN;    // 12-bit address/constant
-    u8 NN;      //  8-bit constant
-    u8 N;       //  4-bit constant
-    u8 X;       //  4-bit register identifier
-    u8 Y;       //  4-bit register identifier
-};
-
 class Chip8 {
 private:
     // registers
@@ -31,7 +22,7 @@ private:
 
     // memory
     u8 ram[4096];
-    u8 stack[64];
+    u16 stack[16];
 
     // hexadecimal input keypad
     u8 keypad[16];
@@ -40,18 +31,12 @@ private:
     bool display[64 * 32];
     u32 pixel_color[64 * 32];
 
-    // currently running rom
-    const char* rom_name;
-
-    // currently executing instruction
-    Instruction inst;
-
     // Whether screen be updated? (yes/no)
     bool draw;
 
     // stack operations
-    void push(u8 data);
-    u8 pop();
+    void push(u16 data);
+    u16 pop();
 
 public:
     Chip8();

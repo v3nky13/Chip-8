@@ -31,7 +31,7 @@ Chip8::Chip8() {
 
     // set chip8 machine defaults
     PC = 0x200;     // Start PC at ROM entry point which is at 0x200
-    SP = 63;        // Empty stack
+    SP = 15;        // Empty stack
 
     srand(time(NULL));
 }
@@ -48,14 +48,14 @@ u8 Chip8::read(Address addr) {
     return ram[addr];
 }
 
-void Chip8::push(u8 data) {
+void Chip8::push(u16 data) {
     if (SP == 0)
         return;
     stack[--SP] = data;
 }
 
-u8 Chip8::pop() {
-    if (SP == 63)
+u16 Chip8::pop() {
+    if (SP == 15)
         return 0;
     return stack[SP++];
 }
@@ -70,22 +70,22 @@ void Chip8::emulate_inst() {
     // 8XY1, 8XY2, 8XY3, 8XY6, 8XYE, BNNN, FX55, FX65
 
     // fetch
-    u16 opcode = (read(PC) << 8) + read(PC + 1);
+    const u16 opcode = (read(PC) << 8) + read(PC + 1);
     PC += 2;
     printf("[%04X]:\n", opcode); // to be removed
 
     // decode
-    inst.kind = opcode >> 12;
-    inst.NNN = opcode & 0x0FFF;
-    inst.NN = opcode & 0x00FF;
-    inst.N = opcode & 0x000F;
-    inst.X = (opcode & 0x0F00) >> 8;
-    inst.Y = (opcode & 0x00F0) >> 4;
+    u8 kind = opcode >> 12;
+    u16 NNN = opcode & 0x0FFF;
+    u8 NN = opcode & 0x00FF;
+    u8 N = opcode & 0x000F;
+    u8 X = (opcode & 0x0F00) >> 8;
+    u8 Y = (opcode & 0x00F0) >> 4;
 
     // execute
-    switch (inst.kind) { // switch b/w diff instruction kinds
+    switch (kind) { // switch b/w diff instruction kinds
         case 0x0:
-            switch (inst.NNN) {
+            switch (NNN) {
                 // 00E0 - CLS
                 case 0x0E0:
                     memset(display, false, sizeof(display));
@@ -101,145 +101,152 @@ void Chip8::emulate_inst() {
 
         // 1NNN - JP addr
         case 0x1:
-            PC = inst.NNN;
+            PC = NNN;
             break;
 
         // 2NNN - CALL addr
         case 0x2:
             push(PC);
-            PC = inst.NNN;
+            PC = NNN;
             break;
 
         // 3XNN - SE Vx, byte
         case 0x3:
-            if (V[inst.X] == inst.NN)
+            if (V[X] == NN)
                 PC += 2;
         
         // 4XNN - SNE Vx, byte
         case 0x4:
-            if (V[inst.X] != inst.NN)
+            if (V[X] != NN)
                 PC += 2;
         
         // 5XY0 - SE Vx, Vy
         case 0x5:
-            if (inst.N != 0x0)
+            if (N != 0x0)
                 return;
-            if (V[inst.X] == V[inst.Y])
+            if (V[X] == V[Y])
                 PC += 2;
 
         // 6XNN - LD Vx, byte
         case 0x6:
-            V[inst.X] = inst.NN;
+            V[X] = NN;
             break;
         
         // 7XNN - ADD Vx, byte
         case 0x7:
-            V[inst.X] += inst.NN;
+            V[X] += NN;
             break;
 
         case 0x8:
-            switch (inst.N) {
+            switch (N) {
                 // 8XY0 - LD Vx, Vy
                 case 0x0:
-                    V[inst.X] = V[inst.Y];
+                    V[X] = V[Y];
                     break;
 
                 // 8XY1 - OR Vx, Vy
                 case 0x1:
-                    V[inst.X] |= V[inst.Y];
+                    V[X] |= V[Y];
                     break;
 
                 // 8XY2 - AND Vx, Vy
                 case 0x2:
-                    V[inst.X] &= V[inst.Y];
+                    V[X] &= V[Y];
                     break;
 
                 // 8XY3 - XOR Vx, Vy
                 case 0x3:
-                    V[inst.X] ^= V[inst.Y];
+                    V[X] ^= V[Y];
                     break;
 
                 // 8XY4 - ADD Vx, Vy
                 case 0x4:
-                    V[0xF] = V[inst.X] + V[inst.Y] > 255;
-                    V[inst.X] += V[inst.Y];
+                    V[0xF] = V[X] + V[Y] > 255;
+                    V[X] += V[Y];
                     break;
 
                 // 8XY5 - SUB Vx, Vy
                 case 0x5:
-                    V[inst.X] = abs(V[inst.X] - V[inst.Y]);
-                    V[0xF] = V[inst.X] >= V[inst.Y];
+                    V[X] = abs(V[X] - V[Y]);
+                    V[0xF] = V[X] >= V[Y];
                     break;
 
                 // 8XY6 - SHR Vx {, Vy}
                 case 0x6:
-                    V[0xF] = V[inst.X] & 0x01;
-                    V[inst.X] >>= 1;
+                    V[0xF] = V[X] & 0x01;
+                    V[X] >>= 1;
                     break;
 
                 // 8XY7 - SUBN Vx, Vy
                 case 0x7:
-                    V[inst.X] = abs(V[inst.Y] - V[inst.X]);
-                    V[0xF] = V[inst.Y] >= V[inst.X];
+                    V[X] = abs(V[Y] - V[X]);
+                    V[0xF] = V[Y] >= V[X];
                     break;
 
                 // 8XYE - SHL Vx {, Vy}  
                 case 0xE:
-                    V[0xF] = (V[inst.X] & 0x80) >> 7;
-                    V[inst.X] <<= 1;
+                    V[0xF] = (V[X] & 0x80) >> 7;
+                    V[X] <<= 1;
                     break;
             }
             break;
 
             // 9XY0 - SNE Vx, Vy
             case 0x9:
-                if (inst.N != 0x0)
+                if (N != 0x0)
                     return;
-                if (V[inst.X] != V[inst.Y])
+                if (V[X] != V[Y])
                     PC += 2;
                 break;
 
             // ANNN - LD I, addr
             case 0xA:
-                I = inst.NNN;
+                I = NNN;
                 break;
             
             // BNNN - JP V0, addr
             case 0xB:
-                PC = V[0x0] + inst.NNN;
+                PC = V[0x0] + NNN;
                 break;
 
             // CXNN - RND Vx, byte
             case 0xC:
-                V[inst.X] = (rand() % 256) & inst.NN;
+                V[X] = (rand() % 256) & NN;
                 break;
 
             // DXYN - DRW Vx, Vy, nibble
-            case 0xD:
-
+            case 0xD: {
+                u8 xc = V[X] & 63; // 63 and 31 to be changed to emulator ht and wh
+                u8 yc = V[Y] & 31;
+                V[0xF] = 0;
+                for (u8 i = 0; i < V[X]; i++) {
+                    const u8 sprite_data = ram[I + i];
+                    
+                }
+            }
                 break;
             
             case 0xE:
-                switch (inst.NN) {
+                switch (NN) {
                     // EX9E - SKP Vx
                     case 0x9E:
-                        if (keypad[V[inst.X]])
+                        if (keypad[V[X]])
                             PC += 2;
                         break;
 
                     // EXA1 - SKNP Vx
                     case 0xA1:
-                        if (!keypad[V[inst.X]])
+                        if (!keypad[V[X]])
                             PC += 2;
                         break;
                 }
                 break;
 
             case 0xF:
-                switch (inst.NN) {
+                switch (NN) {
                     // FX07 - LD Vx, DT
                     case 0x07:
-                        V[inst.X] = delay_timer;
+                        V[X] = delay_timer;
                         break;
                     
                     // FX0A - LD Vx, K
@@ -261,44 +268,44 @@ void Chip8::emulate_inst() {
 
                     // FX15 - LD DT, Vx
                     case 0x15:
-                        delay_timer = V[inst.X];
+                        delay_timer = V[X];
                         break;
                     
                     // FX18 - LD ST, Vx
                     case 0x18:
-                        sound_timer = V[inst.X];
+                        sound_timer = V[X];
                         break;
 
                     // FX1E - LD I, Vx
                     case 0x1E:
-                        V[0xF] = I + V[inst.X] > 0xFFF; // replicating amiga interpreter (for Spaceflight 2091!)
-                        I = (I + V[inst.X]) & 0x0FFF;
+                        V[0xF] = I + V[X] > 0xFFF; // replicating amiga interpreter (for Spaceflight 2091!)
+                        I = (I + V[X]) & 0x0FFF;
                         break;
                     
                     // FX29 - LD F, Vx
                     case 0x29:
-                        I = V[inst.X] * 5;
+                        I = V[X] * 5;
                         break;
                     
                     // FX33 - LD B, Vx
                     case 0x33:
-                        ram[I] = V[inst.X] / 100;
-                        ram[I + 1] = (V[inst.X] % 100) / 10;
-                        ram[I + 2] = V[inst.X] % 10;
+                        ram[I] = V[X] / 100;
+                        ram[I + 1] = (V[X] % 100) / 10;
+                        ram[I + 2] = V[X] % 10;
                         break;
                     
                     // FX55 - LD [I], Vx
                     case 0x55:
-                        for (int i = 0; i <= inst.X; i++)
+                        for (u8 i = 0; i <= X; i++)
                             ram[I + i] = V[i];
-                        I += inst.X + 1;
+                        I += X + 1;
                         break;
                     
                     // FX65 - LD Vx, [I]
                     case 0x65:
-                        for (int i = 0; i <= inst.X; i++)
+                        for (int i = 0; i <= X; i++)
                             V[i] = ram[I + i];
-                        I += inst.X + 1;
+                        I += X + 1;
                         break;
                 }
                 break;
