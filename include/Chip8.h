@@ -45,9 +45,10 @@ public:
     void write(Address addr, u8 data);
     u8 read(Address addr);
 
+    // fetch, decode and execute a chip-8 instruction
     void emulate_inst();
 
-    void print_regs();
+    void print_regs(); // to be removed
 };
 
 #endif

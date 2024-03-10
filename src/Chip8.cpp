@@ -61,7 +61,7 @@ u16 Chip8::pop() {
 }
 
 void Chip8::emulate_inst() {
-    // Fetch, decode and execute a chip-8 instruction
+    // fetch, decode and execute a chip-8 instruction
 
     // TODO:
     // DXYN - draw on screen
@@ -220,7 +220,7 @@ void Chip8::emulate_inst() {
                 u8 yc = V[Y] & 31;
                 V[0xF] = 0;
                 for (u8 i = 0; i < V[X]; i++) {
-                    const u8 sprite_data = ram[I + i];
+                    const u8 sprite_data = read(I + i);
                     
                 }
             }
@@ -289,22 +289,22 @@ void Chip8::emulate_inst() {
                     
                     // FX33 - LD B, Vx
                     case 0x33:
-                        ram[I] = V[X] / 100;
-                        ram[I + 1] = (V[X] % 100) / 10;
-                        ram[I + 2] = V[X] % 10;
+                        write(I, V[X] / 100);
+                        write(I + 1, (V[X] % 100) / 10);
+                        write(I + 2, V[X] % 10);
                         break;
                     
                     // FX55 - LD [I], Vx
                     case 0x55:
                         for (u8 i = 0; i <= X; i++)
-                            ram[I + i] = V[i];
+                            write(I + i, V[i]);
                         I += X + 1;
                         break;
                     
                     // FX65 - LD Vx, [I]
                     case 0x65:
                         for (int i = 0; i <= X; i++)
-                            V[i] = ram[I + i];
+                            V[i] = read(I + i);
                         I += X + 1;
                         break;
                 }
