@@ -75,15 +75,15 @@ void Chip8::emulate_inst() {
     printf("[%04X]:\n", opcode); // to be removed
 
     // decode
-    u8 kind = opcode >> 12;
-    u16 NNN = opcode & 0x0FFF;
-    u8 NN = opcode & 0x00FF;
-    u8 N = opcode & 0x000F;
-    u8 X = (opcode & 0x0F00) >> 8;
-    u8 Y = (opcode & 0x00F0) >> 4;
+    u8 category = opcode >> 12;     //  4-bit instruction category
+    u16 NNN = opcode & 0x0FFF;      // 12-bit address/constant
+    u8 NN = opcode & 0x00FF;        //  8-bit constant
+    u8 N = opcode & 0x000F;         //  4-bit constant
+    u8 X = (opcode & 0x0F00) >> 8;  //  4-bit register identifier
+    u8 Y = (opcode & 0x00F0) >> 4;  //  4-bit register identifier
 
     // execute
-    switch (kind) { // switch b/w diff instruction kinds
+    switch (category) {
         case 0x0:
             switch (NNN) {
                 // 00E0 - CLS
