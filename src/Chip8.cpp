@@ -70,22 +70,22 @@ void Chip8::emulate_inst() {
     // 8XY1, 8XY2, 8XY3, 8XY6, 8XYE, BNNN, FX55, FX65
 
     // fetch
-    const u16 opcode = (read(PC) << 8) + read(PC + 1);
+    inst.opcode = (read(PC) << 8) + read(PC + 1);
     PC += 2;
-    printf("[%04X]:\n", opcode); // to be removed
+    printf("[%04X]:\n", inst.opcode); // to be removed
 
     // decode
-    u8 category = opcode >> 12;     //  4-bit instruction category
-    u16 NNN = opcode & 0x0FFF;      // 12-bit address/constant
-    u8 NN = opcode & 0x00FF;        //  8-bit constant
-    u8 N = opcode & 0x000F;         //  4-bit constant
-    u8 X = (opcode & 0x0F00) >> 8;  //  4-bit register identifier
-    u8 Y = (opcode & 0x00F0) >> 4;  //  4-bit register identifier
+    inst.category = inst.opcode >> 12;
+    inst.NNN = inst.opcode & 0x0FFF;
+    inst.NN = inst.opcode & 0x00FF;
+    inst.N = inst.opcode & 0x000F;
+    inst.X = (inst.opcode & 0x0F00) >> 8;
+    inst.Y = (inst.opcode & 0x00F0) >> 4;
 
     // execute
-    switch (category) {
+    switch (inst.category) {
         case 0x0:
-            switch (NNN) {
+            switch (inst.NNN) {
                 // 00E0 - CLS
                 case 0x0E0:
                     memset(display, false, sizeof(display));
@@ -101,125 +101,125 @@ void Chip8::emulate_inst() {
 
         // 1NNN - JP addr
         case 0x1:
-            PC = NNN;
+            PC = inst.NNN;
             break;
 
         // 2NNN - CALL addr
         case 0x2:
             push(PC);
-            PC = NNN;
+            PC = inst.NNN;
             break;
 
         // 3XNN - SE Vx, byte
         case 0x3:
-            if (V[X] == NN)
+            if (V[inst.X] == inst.NN)
                 PC += 2;
         
         // 4XNN - SNE Vx, byte
         case 0x4:
-            if (V[X] != NN)
+            if (V[inst.X] != inst.NN)
                 PC += 2;
         
         // 5XY0 - SE Vx, Vy
         case 0x5:
-            if (N != 0x0)
+            if (inst.N != 0x0)
                 return;
-            if (V[X] == V[Y])
+            if (V[inst.X] == V[inst.Y])
                 PC += 2;
 
         // 6XNN - LD Vx, byte
         case 0x6:
-            V[X] = NN;
+            V[inst.X] = inst.NN;
             break;
         
         // 7XNN - ADD Vx, byte
         case 0x7:
-            V[X] += NN;
+            V[inst.X] += inst.NN;
             break;
 
         case 0x8:
-            switch (N) {
+            switch (inst.N) {
                 // 8XY0 - LD Vx, Vy
                 case 0x0:
-                    V[X] = V[Y];
+                    V[inst.X] = V[inst.Y];
                     break;
 
                 // 8XY1 - OR Vx, Vy
                 case 0x1:
-                    V[X] |= V[Y];
+                    V[inst.X] |= V[inst.Y];
                     break;
 
                 // 8XY2 - AND Vx, Vy
                 case 0x2:
-                    V[X] &= V[Y];
+                    V[inst.X] &= V[inst.Y];
                     break;
 
                 // 8XY3 - XOR Vx, Vy
                 case 0x3:
-                    V[X] ^= V[Y];
+                    V[inst.X] ^= V[inst.Y];
                     break;
 
                 // 8XY4 - ADD Vx, Vy
                 case 0x4:
-                    V[0xF] = V[X] + V[Y] > 255;
-                    V[X] += V[Y];
+                    V[0xF] = V[inst.X] + V[inst.Y] > 255;
+                    V[inst.X] += V[inst.Y];
                     break;
 
                 // 8XY5 - SUB Vx, Vy
                 case 0x5:
-                    V[X] = abs(V[X] - V[Y]);
-                    V[0xF] = V[X] >= V[Y];
+                    V[inst.X] = abs(V[inst.X] - V[inst.Y]);
+                    V[0xF] = V[inst.X] >= V[inst.Y];
                     break;
 
                 // 8XY6 - SHR Vx {, Vy}
                 case 0x6:
-                    V[0xF] = V[X] & 0x01;
-                    V[X] >>= 1;
+                    V[0xF] = V[inst.X] & 0x01;
+                    V[inst.X] >>= 1;
                     break;
 
                 // 8XY7 - SUBN Vx, Vy
                 case 0x7:
-                    V[X] = abs(V[Y] - V[X]);
-                    V[0xF] = V[Y] >= V[X];
+                    V[inst.X] = abs(V[inst.Y] - V[inst.X]);
+                    V[0xF] = V[inst.Y] >= V[inst.X];
                     break;
 
                 // 8XYE - SHL Vx {, Vy}  
                 case 0xE:
-                    V[0xF] = (V[X] & 0x80) >> 7;
-                    V[X] <<= 1;
+                    V[0xF] = (V[inst.X] & 0x80) >> 7;
+                    V[inst.X] <<= 1;
                     break;
             }
             break;
 
             // 9XY0 - SNE Vx, Vy
             case 0x9:
-                if (N != 0x0)
+                if (inst.N != 0x0)
                     return;
-                if (V[X] != V[Y])
+                if (V[inst.X] != V[inst.Y])
                     PC += 2;
                 break;
 
-            // ANNN - LD I, addr
+            // ANNN- LD I, addr
             case 0xA:
-                I = NNN;
+                I = inst.NNN;
                 break;
             
-            // BNNN - JP V0, addr
+            // BNNN- JP V0, addr
             case 0xB:
-                PC = V[0x0] + NNN;
+                PC = V[0x0] + inst.NNN;
                 break;
 
             // CXNN - RND Vx, byte
             case 0xC:
-                V[X] = (rand() % 256) & NN;
+                V[inst.X] = (rand() % 256) & inst.NN;
                 break;
 
             // DXYN - DRW Vx, Vy, nibble
             case 0xD: {
-                u8 xc = V[X] & 63; // 63 and 31 to be changed to emulator ht and wh
-                u8 yc = V[Y] & 31;
+                u8 xc = V[inst.X] & 63; // 63 and 31 to be changed to emulator ht and wh
+                u8 yc = V[inst.Y] & 31;
                 V[0xF] = 0;
-                for (u8 i = 0; i < V[X]; i++) {
+                for (u8 i = 0; i < V[inst.X]; i++) {
                     const u8 sprite_data = read(I + i);
                     
                 }
@@ -227,26 +227,26 @@ void Chip8::emulate_inst() {
                 break;
             
             case 0xE:
-                switch (NN) {
+                switch (inst.NN) {
                     // EX9E - SKP Vx
                     case 0x9E:
-                        if (keypad[V[X]])
+                        if (keypad[V[inst.X]])
                             PC += 2;
                         break;
 
                     // EXA1 - SKNP Vx
                     case 0xA1:
-                        if (!keypad[V[X]])
+                        if (!keypad[V[inst.X]])
                             PC += 2;
                         break;
                 }
                 break;
 
             case 0xF:
-                switch (NN) {
+                switch (inst.NN) {
                     // FX07 - LD Vx, DT
                     case 0x07:
-                        V[X] = delay_timer;
+                        V[inst.X] = delay_timer;
                         break;
                     
                     // FX0A - LD Vx, K
@@ -268,44 +268,44 @@ void Chip8::emulate_inst() {
 
                     // FX15 - LD DT, Vx
                     case 0x15:
-                        delay_timer = V[X];
+                        delay_timer = V[inst.X];
                         break;
                     
                     // FX18 - LD ST, Vx
                     case 0x18:
-                        sound_timer = V[X];
+                        sound_timer = V[inst.X];
                         break;
 
                     // FX1E - LD I, Vx
                     case 0x1E:
-                        V[0xF] = I + V[X] > 0xFFF; // replicating amiga interpreter (for Spaceflight 2091!)
-                        I = (I + V[X]) & 0x0FFF;
+                        V[0xF] = I + V[inst.X] > 0xFFF; // replicating amiga interpreter (for Spaceflight 2091!)
+                        I = (I + V[inst.X]) & 0x0FFF;
                         break;
                     
                     // FX29 - LD F, Vx
                     case 0x29:
-                        I = V[X] * 5;
+                        I = V[inst.X] * 5;
                         break;
                     
                     // FX33 - LD B, Vx
                     case 0x33:
-                        write(I, V[X] / 100);
-                        write(I + 1, (V[X] % 100) / 10);
-                        write(I + 2, V[X] % 10);
+                        write(I, V[inst.X] / 100);
+                        write(I + 1, (V[inst.X] % 100) / 10);
+                        write(I + 2, V[inst.X] % 10);
                         break;
                     
                     // FX55 - LD [I], Vx
                     case 0x55:
-                        for (u8 i = 0; i <= X; i++)
+                        for (u8 i = 0; i <= inst.X; i++)
                             write(I + i, V[i]);
-                        I += X + 1;
+                        I += inst.X + 1;
                         break;
                     
                     // FX65 - LD Vx, [I]
                     case 0x65:
-                        for (int i = 0; i <= X; i++)
+                        for (int i = 0; i <= inst.X; i++)
                             V[i] = read(I + i);
-                        I += X + 1;
+                        I += inst.X + 1;
                         break;
                 }
                 break;

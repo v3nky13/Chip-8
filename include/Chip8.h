@@ -31,6 +31,17 @@ private:
     bool display[64 * 32];
     u32 pixel_color[64 * 32];
 
+    // currently executing instruction
+    struct Instruction {
+        u16 opcode;     // 16-bit instruction
+        u8 category;    //  4-bit instruction category
+        u16 NNN;        // 12-bit address/constant
+        u8 NN;          //  8-bit constant
+        u8 N;           //  4-bit constant
+        u8 X;           //  4-bit register identifier
+        u8 Y;           //  4-bit register identifier
+    } inst;
+
     // Whether screen be updated? (yes/no)
     bool draw;
 
