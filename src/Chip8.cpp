@@ -60,6 +60,12 @@ u16 Chip8::pop() {
     return stack[SP++];
 }
 
+void Chip8::debug_inst() {
+    printf("%03X: ", PC - 2); // should be logged in sdl window not here
+
+
+}
+
 void Chip8::emulate_inst() {
     // fetch, decode and execute a chip-8 instruction
 
@@ -88,7 +94,7 @@ void Chip8::emulate_inst() {
             switch (inst.NNN) {
                 // 00E0 - CLS
                 case 0x0E0:
-                    memset(display, false, sizeof(display));
+                    memset(frame_buffer, false, sizeof(frame_buffer));
                     draw = true;
                     break;
                 

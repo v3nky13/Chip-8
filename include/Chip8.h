@@ -28,7 +28,7 @@ private:
     u8 keypad[16];
 
     // display
-    bool display[64 * 32];
+    bool frame_buffer[64 * 32];
     u32 pixel_color[64 * 32];
 
     // currently executing instruction
@@ -48,6 +48,9 @@ private:
     // stack operations
     void push(u16 data);
     u16 pop();
+
+    // log debugging info abt currently executing inst to window
+    void debug_inst();
 
 public:
     Chip8();
