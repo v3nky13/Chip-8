@@ -2,23 +2,17 @@
 #include "../include/Chip8.h"
 #include "../include/Emulator.h"
 
-int main() {
-    Chip8 chip8;
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        printf("Usage: ./Chip8 <rom-path>");
+        exit(EXIT_FAILURE);
+    }
 
-    // chip8 insts are stored big-endian
-    chip8.write(0x200, 0x63);
-    chip8.write(0x201, 0xF0);
-    chip8.write(0x202, 0x64);
-    chip8.write(0x203, 0xE0);
-    chip8.write(0x204, 0x83);
-    chip8.write(0x205, 0x44);
+    Chip8 chip8(argv[1]);
 
-    chip8.emulate_inst();
-    chip8.print_regs();
-    chip8.emulate_inst();
-    chip8.print_regs();
-    chip8.emulate_inst();
-    chip8.print_regs();
+    while (true) {
+        chip8.emulate_inst();
+    }
 
     return 0;
 }

@@ -3,7 +3,7 @@
 #include <time.h>
 #include "../include/Chip8.h"
 
-Chip8::Chip8() {
+Chip8::Chip8(const char *rom_loc) {
     const u8 font_sprites[] = {
         0xF0, 0x90, 0x90, 0x90, 0xF0,   // 0
         0x20, 0x60, 0x20, 0x20, 0x70,   // 1
@@ -29,21 +29,38 @@ Chip8::Chip8() {
     // load font sprites to ram at address 0x000
     memcpy(ram, font_sprites, sizeof(font_sprites));
 
+    const u16 entry_point = 0x200;
+
+    FILE *rom = fopen(rom_loc, "rb");
+
+    if (!rom) {
+        printf("Rom file at %s is invalid or doesn't exist\n", rom_loc);
+    }
+
+    fseek(rom, 0, SEEK_END);
+    const size_t rom_size = ftell(rom);
+    rewind(rom);
+    
+    if (fread(&ram[entry_point], rom_size, 1, rom) != 1)
+        printf("Couldn't load rom file into memory");
+
+    if (rom) fclose(rom);
+
     // set chip8 machine defaults
-    PC = 0x200;     // Start PC at ROM entry point which is at 0x200
-    SP = 15;        // Empty stack
+    PC = entry_point;   // Start PC at ROM entry point
+    SP = 15;            // Empty stack
 
     srand(time(NULL));
 }
 
 void Chip8::write(Address addr, u8 data) {
-    if (addr < 0x000 || addr > 0xFFF)
+    if (addr > 0xFFF)
         return;
     ram[addr] = data;
 }
 
 u8 Chip8::read(Address addr) {
-    if (addr < 0x000 || addr > 0xFFF)
+    if (addr > 0xFFF)
         return 0;
     return ram[addr];
 }
@@ -78,7 +95,7 @@ void Chip8::emulate_inst() {
     // fetch
     inst.opcode = (read(PC) << 8) + read(PC + 1);
     PC += 2;
-    printf("[%04X]:\n", inst.opcode); // to be removed
+    // printf("[%04X]:\n", inst.opcode); // to be removed
 
     // decode
     inst.category = inst.opcode >> 12;
@@ -88,13 +105,23 @@ void Chip8::emulate_inst() {
     inst.X = (inst.opcode & 0x0F00) >> 8;
     inst.Y = (inst.opcode & 0x00F0) >> 4;
 
+    if (draw) {
+        draw = false;
+        std::system("clear");
+        for (int i = 0; i < 32; i++) {
+            for (int j = 0; j < 64; j++)
+                printf("%c ", display[i * 64 + j] ? '*': ' ');
+            printf("\n");
+        }
+    }
+
     // execute
     switch (inst.category) {
         case 0x0:
             switch (inst.NNN) {
                 // 00E0 - CLS
                 case 0x0E0:
-                    memset(frame_buffer, false, sizeof(frame_buffer));
+                    memset(display, false, sizeof(display));
                     draw = true;
                     break;
                 
@@ -222,13 +249,32 @@ void Chip8::emulate_inst() {
 
             // DXYN - DRW Vx, Vy, nibble
             case 0xD: {
-                u8 xc = V[inst.X] & 63; // 63 and 31 to be changed to emulator ht and wh
-                u8 yc = V[inst.Y] & 31;
+                u8 xc = V[inst.X] % 64; // 64 and 32 to be changed to emulator ht and wh
+                u8 yc = V[inst.Y] % 32;
+                const u8 org_xc = xc;
+
                 V[0xF] = 0;
-                for (u8 i = 0; i < V[inst.X]; i++) {
+
+                for (u8 i = 0; i < inst.N; i++) {
                     const u8 sprite_data = read(I + i);
+                    xc = org_xc;
                     
+                    for (int8_t j = 7; j >= 0; j--) {
+                        bool *pixel = &display[yc * 64 + xc];
+                        const bool sprite_bit = sprite_data & (1 << j);
+
+                        if (sprite_bit && *pixel)
+                            V[0xF] = 1;
+                        
+                        *pixel ^= sprite_bit;
+
+                        if (++xc >= 64) break;
+                    }
+
+                    if (++yc >= 32) break;
                 }
+
+                draw = true;
             }
                 break;
             

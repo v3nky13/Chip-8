@@ -28,7 +28,7 @@ private:
     u8 keypad[16];
 
     // display
-    bool frame_buffer[64 * 32];
+    bool display[64 * 32];
     u32 pixel_color[64 * 32];
 
     // currently executing instruction
@@ -42,8 +42,6 @@ private:
         u8 Y;           //  4-bit register identifier
     } inst;
 
-    // Whether screen be updated? (yes/no)
-    bool draw;
 
     // stack operations
     void push(u16 data);
@@ -53,8 +51,11 @@ private:
     void debug_inst();
 
 public:
-    Chip8();
+    Chip8(const char *rom_loc);
 
+    // Whether screen be updated? (yes/no)
+    bool draw;
+    
     // memory operations
     void write(Address addr, u8 data);
     u8 read(Address addr);
