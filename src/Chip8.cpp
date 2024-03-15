@@ -80,14 +80,13 @@ u16 Chip8::pop() {
 void Chip8::debug_inst() {
     printf("%03X: ", PC - 2); // should be logged in sdl window not here
 
-
+    
 }
 
 void Chip8::emulate_inst() {
     // fetch, decode and execute a chip-8 instruction
 
     // TODO:
-    // DXYN - draw on screen
     // FX0A - wait for key input
     // chip8 variant changes for the following (read guide & queso):
     // 8XY1, 8XY2, 8XY3, 8XY6, 8XYE, BNNN, FX55, FX65
@@ -95,7 +94,6 @@ void Chip8::emulate_inst() {
     // fetch
     inst.opcode = (read(PC) << 8) + read(PC + 1);
     PC += 2;
-    // printf("[%04X]:\n", inst.opcode); // to be removed
 
     // decode
     inst.category = inst.opcode >> 12;
@@ -115,6 +113,8 @@ void Chip8::emulate_inst() {
         }
     }
 
+    bool invalid_opcode = false;
+
     // execute
     switch (inst.category) {
         case 0x0:
@@ -129,6 +129,9 @@ void Chip8::emulate_inst() {
                 case 0x0EE:
                     PC = pop();
                     break;
+                
+                default:
+                    invalid_opcode = true;
             }
             break;
 
@@ -221,6 +224,9 @@ void Chip8::emulate_inst() {
                     V[0xF] = (V[inst.X] & 0x80) >> 7;
                     V[inst.X] <<= 1;
                     break;
+
+                default:
+                    invalid_opcode = true;
             }
             break;
 
@@ -291,6 +297,9 @@ void Chip8::emulate_inst() {
                         if (!keypad[V[inst.X]])
                             PC += 2;
                         break;
+
+                    default:
+                        invalid_opcode = true;
                 }
                 break;
 
@@ -303,6 +312,7 @@ void Chip8::emulate_inst() {
                     
                     // FX0A - LD Vx, K
                     case 0x0A:
+                        printf("this wont work dumbass\n");
 
                         // --- A brain rotten idea for this part ---
 
@@ -359,9 +369,18 @@ void Chip8::emulate_inst() {
                             V[i] = read(I + i);
                         I += inst.X + 1;
                         break;
+
+                    default:
+                        invalid_opcode = true;
                 }
                 break;
+        
+        default:
+            invalid_opcode = true;
     }
+
+    if (invalid_opcode)
+        printf("Invalid opcode: %4X\n", inst.opcode);
 }
 
 void Chip8::print_regs() {
