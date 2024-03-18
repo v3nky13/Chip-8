@@ -150,11 +150,13 @@ void Chip8::emulate_inst() {
         case 0x3:
             if (V[inst.X] == inst.NN)
                 PC += 2;
+            break;
         
         // 4XNN - SNE Vx, byte
         case 0x4:
             if (V[inst.X] != inst.NN)
                 PC += 2;
+            break;
         
         // 5XY0 - SE Vx, Vy
         case 0x5:
@@ -162,6 +164,7 @@ void Chip8::emulate_inst() {
                 return;
             if (V[inst.X] == V[inst.Y])
                 PC += 2;
+            break;
 
         // 6XNN - LD Vx, byte
         case 0x6:
