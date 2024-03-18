@@ -77,210 +77,6 @@ u16 Chip8::pop() {
     return stack[SP++];
 }
 
-void Chip8::debug_inst() {
-    printf("0x%03X: ", PC - 2); // should be logged in sdl window not here
-
-    switch (inst.category) {
-        case 0x0:
-            switch (inst.NNN) {
-                // 00E0 - CLS
-                case 0x0E0:
-                    printf("cls\n");
-                    break;
-                
-                // 00EE - RET
-                case 0x0EE:
-                    printf("ret\n");
-                    break;
-            }
-            break;
-
-        // 1NNN - JP addr
-        case 0x1:
-            printf("jp %3X\n", inst.NNN);
-            break;
-
-        // 2NNN - CALL addr
-        case 0x2:
-            printf("call %3X\n", inst.NNN);
-            break;
-
-        // 3XNN - SE Vx, byte
-        case 0x3:
-            printf("se V%1X, %2X\n", inst.X, inst.NN);
-            break;
-        
-        // 4XNN - SNE Vx, byte
-        case 0x4:
-            printf("sne V%1X, %2X\n", inst.X, inst.NN);
-            break;
-        
-        // 5XY0 - SE Vx, Vy
-        case 0x5:
-            printf("se V%1X, V%1X\n", inst.X, inst.Y);
-            break;
-
-        // 6XNN - LD Vx, byte
-        case 0x6:
-            printf("ld V%1X, %2X\n", inst.X, inst.NN);
-            break;
-        
-        // 7XNN - ADD Vx, byte
-        case 0x7:
-            printf("add V%1X, %2X\n", inst.X, inst.NN);
-            break;
-        
-        case 0x8:
-            switch (inst.N) {
-                // 8XY0 - LD Vx, Vy
-                case 0x0:
-                    printf("ld V%1X, V%1X\n", inst.X, inst.Y);
-                    break;
-
-                // 8XY1 - OR Vx, Vy
-                case 0x1:
-                    printf("or V%1X, V%1X\n", inst.X, inst.Y);
-                    break;
-
-                // 8XY2 - AND Vx, Vy
-                case 0x2:
-                    printf("and V%1X, V%1X", inst.X, inst.Y);
-                    break;
-
-                // 8XY3 - XOR Vx, Vy
-                case 0x3:
-                    printf("xor V%1X, V%1X", inst.X, inst.Y);
-                    break;
-
-                // 8XY4 - ADD Vx, Vy
-                case 0x4:
-                    printf("add V%1X, V%1X", inst.X, inst.Y);
-                    break;
-
-                // 8XY5 - SUB Vx, Vy
-                case 0x5:
-                    printf("sub V%1X, V%1X", inst.X, inst.Y);
-                    break;
-            //start from here    
-                // 8XY6 - SHR Vx {, Vy}
-                case 0x6:
-                    
-                    break;
-
-                // 8XY7 - SUBN Vx, Vy
-                case 0x7:
-                    printf("subn V%1X, V%1X", inst.X, inst.Y);
-                    break;
-
-                // 8XYE - SHL Vx {, Vy} 
-                case 0xE:
-                    
-                    break;
-            }
-            break;
-            //complete here
-            // 9XY0 - SNE Vx, Vy
-            case 0x9:
-                printf("sne V%1X, V%1X\n", inst.X, inst.Y);
-                break;
-
-            // ANNN- LD I, addr
-            case 0xA:
-               printf("ld i, addr\n");
-                break;
-            
-            // BNNN- JP V0, addr
-            case 0xB:
-                printf("jp V0, %3X\n", inst.NNN);
-                break;
-
-            // CXNN - RND Vx, byte
-            case 0xC:
-                printf("rnd %1X, %2X\n", inst.X, inst.NN);
-                break;
-
-            // DXYN - DRW Vx, Vy, nibble
-            case 0xD:
-                printf("drw V%1X, V%1X, %1X\n", inst.X, inst.Y, inst.N);
-                break;
-            
-            case 0xE:
-                switch (inst.NN) {
-                    // EX9E - SKP Vx
-                    case 0x9E:
-                        printf("skp V%1X\n", inst.X );
-                        break;
-
-                    // EXA1 - SKNP Vx
-                    case 0xA1:
-                        printf("sknp V%1X\n", inst.X);
-                        break;
-                }
-                break;
-
-            case 0xF:
-                switch (inst.NN) {
-                    // FX07 - LD Vx, DT
-                    case 0x07:
-                        printf("ld V%1X,dt\n", inst.X);
-                        break;
-                    
-                    // FX0A - LD Vx, K
-                    case 0x0A:
-
-                        // --- A brain rotten idea for this part ---
-
-                        // func (v *VM) insLDxK(reg uint8) {
-                        //     if len(v.Keys) > 0 {
-                        //         // Get last key pressed if there are multiple and exit the PC loop
-                        //         v.registers[reg] = v.Keys[0]
-                        //         return
-                        //     }
-                        //     // Madness, *decrement* the PC to keep the fetch loop waiting here
-                        //     v.pc -= 2
-                        // }
-
-                        break;
-
-                    // FX15 - LD DT, Vx
-                    case 0x15:
-                        printf("ld dt,V%1X\n",inst.X);
-                        break;
-                    
-                    // FX18 - LD ST, Vx
-                    case 0x18:
-                        printf("ld st, V%1X\n", inst.X);
-                        break;
-
-                    // FX1E - LD I, Vx
-                    case 0x1E:
-                        printf("ld i, V%1X\n", inst.X);
-                        break;
-                    
-                    // FX29 - LD F, Vx
-                    case 0x29:
-                        printf("ld f, V%1X\n", inst.X);
-                        break;
-                    
-                    // FX33 - LD B, Vx
-                    case 0x33:
-                        printf("ld b, V%1X\n", inst.X);
-                        break;
-                    
-                    // FX55 - LD [I], Vx
-                    case 0x55:
-                       
-                        break;
-                    
-                    // FX65 - LD Vx, [I]
-                    case 0x65:
-                       
-                        break;
-                }
-                break;
-    }
-}
-
 void Chip8::emulate_inst() {
     // fetch, decode and execute a chip-8 instruction
 
@@ -301,15 +97,17 @@ void Chip8::emulate_inst() {
     inst.X = (inst.opcode & 0x0F00) >> 8;
     inst.Y = (inst.opcode & 0x00F0) >> 4;
 
-    if (draw) {
-        draw = false;
-        std::system("clear");
-        for (int i = 0; i < 32; i++) {
-            for (int j = 0; j < 64; j++)
-                printf("%c ", display[i * 64 + j] ? '*': ' ');
-            printf("\n");
-        }
-    }
+    // if (draw) {
+    //     draw = false;
+    //     std::system("clear");
+    //     for (int i = 0; i < 32; i++) {
+    //         for (int j = 0; j < 64; j++)
+    //             printf("%c ", display[i * 64 + j] ? '*': ' ');
+    //         printf("\n");
+    //     }
+    // }
+
+    debug_inst();
 
     bool invalid_opcode = false;
 
@@ -582,6 +380,198 @@ void Chip8::emulate_inst() {
 
     if (invalid_opcode)
         printf("Invalid opcode: %4X\n", inst.opcode);
+}
+
+void Chip8::debug_inst() {
+    printf("%03x: ", PC - 2);
+
+    switch (inst.category) {
+        case 0x0:
+            switch (inst.NNN) {
+                // 00E0 - CLS
+                case 0x0E0:
+                    printf("cls\n");
+                    break;
+                
+                // 00EE - RET
+                case 0x0EE:
+                    printf("ret\n");
+                    break;
+            }
+            break;
+
+        // 1NNN - JP addr
+        case 0x1:
+            printf("jp %3x\n", inst.NNN);
+            break;
+
+        // 2NNN - CALL addr
+        case 0x2:
+            printf("call %3x\n", inst.NNN);
+            break;
+
+        // 3XNN - SE Vx, byte
+        case 0x3:
+            printf("se v%1X, %2x\n", inst.X, inst.NN);
+            break;
+        
+        // 4XNN - SNE Vx, byte
+        case 0x4:
+            printf("sne v%1x, %2x\n", inst.X, inst.NN);
+            break;
+        
+        // 5XY0 - SE Vx, Vy
+        case 0x5:
+            printf("se v%1x, v%1x\n", inst.X, inst.Y);
+            break;
+
+        // 6XNN - LD Vx, byte
+        case 0x6:
+            printf("ld v%1x, %2x\n", inst.X, inst.NN);
+            break;
+        
+        // 7XNN - ADD Vx, byte
+        case 0x7:
+            printf("add v%1x, %2x\n", inst.X, inst.NN);
+            break;
+        
+        case 0x8:
+            switch (inst.N) {
+                // 8XY0 - LD Vx, Vy
+                case 0x0:
+                    printf("ld v%1x, v%1x\n", inst.X, inst.Y);
+                    break;
+
+                // 8XY1 - OR Vx, Vy
+                case 0x1:
+                    printf("or v%1x, v%1x\n", inst.X, inst.Y);
+                    break;
+
+                // 8XY2 - AND Vx, Vy
+                case 0x2:
+                    printf("and v%1x, v%1x\n", inst.X, inst.Y);
+                    break;
+
+                // 8XY3 - XOR Vx, Vy
+                case 0x3:
+                    printf("xor v%1x, v%1x\n", inst.X, inst.Y);
+                    break;
+
+                // 8XY4 - ADD Vx, Vy
+                case 0x4:
+                    printf("add v%1x, v%1x\n", inst.X, inst.Y);
+                    break;
+
+                // 8XY5 - SUB Vx, Vy
+                case 0x5:
+                    printf("sub v%1x, v%1x\n", inst.X, inst.Y);
+                    break;
+
+                // 8XY6 - SHR Vx {, Vy}
+                case 0x6:
+                    
+                    break;
+
+                // 8XY7 - SUBN Vx, Vy
+                case 0x7:
+                    printf("subn v%1x, v%1x\n", inst.X, inst.Y);
+                    break;
+
+                // 8XYE - SHL Vx {, Vy}
+                case 0xE:
+                    
+                    break;
+            }
+            break;
+
+            // 9XY0 - SNE Vx, Vy
+            case 0x9:
+                printf("sne V%1x, V%1x\n", inst.X, inst.Y);
+                break;
+
+            // ANNN- LD I, addr
+            case 0xA:
+                printf("ld %3x, %3x\n", I, inst.NNN);
+                break;
+            
+            // BNNN- JP V0, addr
+            case 0xB:
+                printf("jp v0, %3x\n", inst.NNN);
+                break;
+
+            // CXNN - RND Vx, byte
+            case 0xC:
+                printf("rnd %1x, %2x\n", inst.X, inst.NN);
+                break;
+
+            // DXYN - DRW Vx, Vy, nibble
+            case 0xD:
+                printf("drw V%1x, V%1x, %1x\n", inst.X, inst.Y, inst.N);
+                break;
+            
+            case 0xE:
+                switch (inst.NN) {
+                    // EX9E - SKP Vx
+                    case 0x9E:
+                        printf("skp v%1x\n", inst.X );
+                        break;
+
+                    // EXA1 - SKNP Vx
+                    case 0xA1:
+                        printf("sknp v%1x\n", inst.X);
+                        break;
+                }
+                break;
+
+            case 0xF:
+                switch (inst.NN) {
+                    // FX07 - LD Vx, DT
+                    case 0x07:
+                        printf("ld v%1x, %2x\n", inst.X, delay_timer);
+                        break;
+                    
+                    // FX0A - LD Vx, K
+                    case 0x0A:
+                        printf("ld v%1x, k\n", inst.X);
+                        break;
+
+                    // FX15 - LD DT, Vx
+                    case 0x15:
+                        printf("ld %2x, v%1x\n", delay_timer, inst.X);
+                        break;
+                    
+                    // FX18 - LD ST, Vx
+                    case 0x18:
+                        printf("ld %2x, v%1x\n", sound_timer, inst.X);
+                        break;
+
+                    // FX1E - LD I, Vx
+                    case 0x1E:
+                        printf("ld %3x, v%1x\n", I, inst.X);
+                        break;
+                    
+                    // FX29 - LD F, Vx
+                    case 0x29:
+                        printf("ld f, v%1x\n", inst.X);
+                        break;
+                    
+                    // FX33 - LD B, Vx
+                    case 0x33:
+                        printf("ld b, v%1x\n", inst.X);
+                        break;
+                    
+                    // FX55 - LD [I], Vx
+                    case 0x55:
+                        printf("ld [%3x], v%1x\n", I, inst.X);
+                        break;
+                    
+                    // FX65 - LD Vx, [I]
+                    case 0x65:
+                        printf("ld v%1x, [%3x]\n", inst.X, I);
+                        break;
+                }
+                break;
+    }
 }
 
 void Chip8::print_regs() {
