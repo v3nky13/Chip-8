@@ -7,6 +7,8 @@ typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint16_t Address;
+typedef int8_t i8;
+
 
 class Chip8 {
 private:
@@ -55,10 +57,6 @@ public:
 
     // Whether screen be updated? (yes/no)
     bool draw;
-    
-    // memory operations
-    void write(Address addr, u8 data);
-    u8 read(Address addr);
 
     // fetch, decode and execute a chip-8 instruction
     void emulate_inst();

@@ -1,5 +1,6 @@
 .vscode
 Chip8.o
+Chip8_debug.o
 Emulator.o
 chip8
 roms

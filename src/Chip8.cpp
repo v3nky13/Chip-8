@@ -53,18 +53,6 @@ Chip8::Chip8(const char *rom_loc) {
     srand(time(NULL));
 }
 
-void Chip8::write(Address addr, u8 data) {
-    if (addr > 0xFFF)
-        return;
-    ram[addr] = data;
-}
-
-u8 Chip8::read(Address addr) {
-    if (addr > 0xFFF)
-        return 0;
-    return ram[addr];
-}
-
 void Chip8::push(u16 data) {
     if (SP == 0)
         return;
@@ -86,7 +74,7 @@ void Chip8::emulate_inst() {
     // 8XY1, 8XY2, 8XY3, 8XY6, 8XYE, BNNN, FX55, FX65
 
     // fetch
-    inst.opcode = (read(PC) << 8) + read(PC + 1);
+    inst.opcode = (ram[PC] << 8) + ram[PC + 1];
     PC += 2;
 
     // decode
@@ -107,9 +95,9 @@ void Chip8::emulate_inst() {
     //     }
     // }
 
+    #ifdef DEBUG
     debug_inst();
-
-    bool invalid_opcode = false;
+    #endif
 
     // execute
     switch (inst.category) {
@@ -125,9 +113,6 @@ void Chip8::emulate_inst() {
                 case 0x0EE:
                     PC = pop();
                     break;
-                
-                default:
-                    invalid_opcode = true;
             }
             break;
 
@@ -223,248 +208,244 @@ void Chip8::emulate_inst() {
                     V[0xF] = (V[inst.X] & 0x80) >> 7;
                     V[inst.X] <<= 1;
                     break;
-
-                default:
-                    invalid_opcode = true;
             }
             break;
 
-            // 9XY0 - SNE Vx, Vy
-            case 0x9:
-                if (inst.N != 0x0)
-                    return;
-                if (V[inst.X] != V[inst.Y])
-                    PC += 2;
-                break;
+        // 9XY0 - SNE Vx, Vy
+        case 0x9:
+            if (inst.N != 0x0)
+                return;
+            if (V[inst.X] != V[inst.Y])
+                PC += 2;
+            break;
 
-            // ANNN- LD I, addr
-            case 0xA:
-                I = inst.NNN;
-                break;
-            
-            // BNNN- JP V0, addr
-            case 0xB:
-                PC = V[0x0] + inst.NNN;
-                break;
-
-            // CXNN - RND Vx, byte
-            case 0xC:
-                V[inst.X] = (rand() % 256) & inst.NN;
-                break;
-
-            // DXYN - DRW Vx, Vy, nibble
-            case 0xD: {
-                u8 xc = V[inst.X] % 64; // 64 and 32 to be changed to emulator ht and wh
-                u8 yc = V[inst.Y] % 32;
-                const u8 org_xc = xc;
-
-                V[0xF] = 0;
-
-                for (u8 i = 0; i < inst.N; i++) {
-                    const u8 sprite_data = read(I + i);
-                    xc = org_xc;
-                    
-                    for (int8_t j = 7; j >= 0; j--) {
-                        bool *pixel = &display[yc * 64 + xc];
-                        const bool sprite_bit = sprite_data & (1 << j);
-
-                        if (sprite_bit && *pixel)
-                            V[0xF] = 1;
-                        
-                        *pixel ^= sprite_bit;
-
-                        if (++xc >= 64) break;
-                    }
-
-                    if (++yc >= 32) break;
-                }
-
-                draw = true;
-            }
-                break;
-            
-            case 0xE:
-                switch (inst.NN) {
-                    // EX9E - SKP Vx
-                    case 0x9E:
-                        if (keypad[V[inst.X]])
-                            PC += 2;
-                        break;
-
-                    // EXA1 - SKNP Vx
-                    case 0xA1:
-                        if (!keypad[V[inst.X]])
-                            PC += 2;
-                        break;
-
-                    default:
-                        invalid_opcode = true;
-                }
-                break;
-
-            case 0xF:
-                switch (inst.NN) {
-                    // FX07 - LD Vx, DT
-                    case 0x07:
-                        V[inst.X] = delay_timer;
-                        break;
-                    
-                    // FX0A - LD Vx, K
-                    case 0x0A:
-                        printf("this wont work dumbass\n");
-
-                        // --- A brain rotten idea for this part ---
-
-                        // func (v *VM) insLDxK(reg uint8) {
-                        //     if len(v.Keys) > 0 {
-                        //         // Get last key pressed if there are multiple and exit the PC loop
-                        //         v.registers[reg] = v.Keys[0]
-                        //         return
-                        //     }
-                        //     // Madness, *decrement* the PC to keep the fetch loop waiting here
-                        //     v.pc -= 2
-                        // }
-
-                        break;
-
-                    // FX15 - LD DT, Vx
-                    case 0x15:
-                        delay_timer = V[inst.X];
-                        break;
-                    
-                    // FX18 - LD ST, Vx
-                    case 0x18:
-                        sound_timer = V[inst.X];
-                        break;
-
-                    // FX1E - LD I, Vx
-                    case 0x1E:
-                        V[0xF] = I + V[inst.X] > 0xFFF; // replicating amiga interpreter (for Spaceflight 2091!)
-                        I = (I + V[inst.X]) & 0x0FFF;
-                        break;
-                    
-                    // FX29 - LD F, Vx
-                    case 0x29:
-                        I = V[inst.X] * 5;
-                        break;
-                    
-                    // FX33 - LD B, Vx
-                    case 0x33:
-                        write(I, V[inst.X] / 100);
-                        write(I + 1, (V[inst.X] % 100) / 10);
-                        write(I + 2, V[inst.X] % 10);
-                        break;
-                    
-                    // FX55 - LD [I], Vx
-                    case 0x55:
-                        for (u8 i = 0; i <= inst.X; i++)
-                            write(I + i, V[i]);
-                        I += inst.X + 1;
-                        break;
-                    
-                    // FX65 - LD Vx, [I]
-                    case 0x65:
-                        for (int i = 0; i <= inst.X; i++)
-                            V[i] = read(I + i);
-                        I += inst.X + 1;
-                        break;
-
-                    default:
-                        invalid_opcode = true;
-                }
-                break;
+        // ANNN- LD I, addr
+        case 0xA:
+            I = inst.NNN;
+            break;
         
-        default:
-            invalid_opcode = true;
-    }
+        // BNNN- JP V0, addr
+        case 0xB:
+            PC = V[0x0] + inst.NNN;
+            break;
 
-    if (invalid_opcode)
-        printf("Invalid opcode: %4X\n", inst.opcode);
+        // CXNN - RND Vx, byte
+        case 0xC:
+            V[inst.X] = (rand() % 256) & inst.NN;
+            break;
+
+        // DXYN - DRW Vx, Vy, nibble
+        case 0xD: {
+            u8 xc = V[inst.X] % 64; // 64 and 32 to be changed to emulator ht and wh
+            u8 yc = V[inst.Y] % 32;
+            const u8 org_xc = xc;
+
+            V[0xF] = 0;
+
+            for (u8 i = 0; i < inst.N; i++) {
+                const u8 sprite_data = ram[I + i];
+                xc = org_xc;
+                
+                for (i8 j = 7; j >= 0; j--) {
+                    bool *pixel = &display[yc * 64 + xc];
+                    const bool sprite_bit = sprite_data & (1 << j);
+
+                    if (sprite_bit && *pixel)
+                        V[0xF] = 1;
+                    
+                    *pixel ^= sprite_bit;
+
+                    if (++xc >= 64) break;
+                }
+
+                if (++yc >= 32) break;
+            }
+
+            draw = true;
+        }
+            break;
+        
+        case 0xE:
+            switch (inst.NN) {
+                // EX9E - SKP Vx
+                case 0x9E:
+                    if (keypad[V[inst.X]])
+                        PC += 2;
+                    break;
+
+                // EXA1 - SKNP Vx
+                case 0xA1:
+                    if (!keypad[V[inst.X]])
+                        PC += 2;
+                    break;
+            }
+            break;
+
+        case 0xF:
+            switch (inst.NN) {
+                // FX07 - LD Vx, DT
+                case 0x07:
+                    V[inst.X] = delay_timer;
+                    break;
+                
+                // FX0A - LD Vx, K
+                case 0x0A:
+                    printf("this wont work dumbass\n");
+
+                    // --- A brain rotten idea for this part ---
+
+                    // func (v *VM) insLDxK(reg uint8) {
+                    //     if len(v.Keys) > 0 {
+                    //         // Get last key pressed if there are multiple and exit the PC loop
+                    //         v.registers[reg] = v.Keys[0]
+                    //         return
+                    //     }
+                    //     // Madness, *decrement* the PC to keep the fetch loop waiting here
+                    //     v.pc -= 2
+                    // }
+
+                    break;
+
+                // FX15 - LD DT, Vx
+                case 0x15:
+                    delay_timer = V[inst.X];
+                    break;
+                
+                // FX18 - LD ST, Vx
+                case 0x18:
+                    sound_timer = V[inst.X];
+                    break;
+
+                // FX1E - LD I, Vx
+                case 0x1E:
+                    V[0xF] = I + V[inst.X] > 0xFFF; // replicating amiga interpreter (for Spaceflight 2091!)
+                    I = (I + V[inst.X]) & 0x0FFF;
+                    break;
+                
+                // FX29 - LD F, Vx
+                case 0x29:
+                    I = V[inst.X] * 5;
+                    break;
+                
+                // FX33 - LD B, Vx
+                case 0x33:
+                    ram[I] = V[inst.X] / 100;
+                    ram[I + 1] = (V[inst.X] % 100) / 10;
+                    ram[I + 2] = V[inst.X] % 10;
+                    break;
+                
+                // FX55 - LD [I], Vx
+                case 0x55:
+                    for (u8 i = 0; i <= inst.X; i++)
+                        ram[I + i] = V[i];
+                    I += inst.X + 1;
+                    break;
+                
+                // FX65 - LD Vx, [I]
+                case 0x65:
+                    for (int i = 0; i <= inst.X; i++)
+                        V[i] = ram[I + i];
+                    I += inst.X + 1;
+                    break;
+            }
+            break;
+    }
 }
 
+#ifdef DEBUG
 void Chip8::debug_inst() {
-    printf("%03x: ", PC - 2);
+    bool invalid_opcode = false;
+    const char *light_red = "\033[1;31m";
+    const char *light_green = "\033[1;32m";
+    const char *light_blue = "\033[1;34m";
+    const char *light_yellow = "\033[1;33m";
+    const char *reset_color = "\033[0m";
+
+    printf("[%s%03x%s]: %s%04X%s -> %s", light_yellow, PC - 2, reset_color, light_blue, inst.opcode, reset_color, light_green);
 
     switch (inst.category) {
         case 0x0:
             switch (inst.NNN) {
                 // 00E0 - CLS
                 case 0x0E0:
-                    printf("cls\n");
+                    printf("cls");
                     break;
                 
                 // 00EE - RET
                 case 0x0EE:
-                    printf("ret\n");
+                    printf("ret");
                     break;
+
+                default:
+                    invalid_opcode = true;
             }
             break;
 
         // 1NNN - JP addr
         case 0x1:
-            printf("jp %3x\n", inst.NNN);
+            printf("jp %03x", inst.NNN);
             break;
 
         // 2NNN - CALL addr
         case 0x2:
-            printf("call %3x\n", inst.NNN);
+            printf("call %03x", inst.NNN);
             break;
 
         // 3XNN - SE Vx, byte
         case 0x3:
-            printf("se v%1X, %2x\n", inst.X, inst.NN);
+            printf("se v%01x, %02x", inst.X, inst.NN);
             break;
         
         // 4XNN - SNE Vx, byte
         case 0x4:
-            printf("sne v%1x, %2x\n", inst.X, inst.NN);
+            printf("sne v%01x, %02x", inst.X, inst.NN);
             break;
         
         // 5XY0 - SE Vx, Vy
         case 0x5:
-            printf("se v%1x, v%1x\n", inst.X, inst.Y);
+            printf("se v%01x, v%01x", inst.X, inst.Y);
             break;
 
         // 6XNN - LD Vx, byte
         case 0x6:
-            printf("ld v%1x, %2x\n", inst.X, inst.NN);
+            printf("ld v%01x, %02x", inst.X, inst.NN);
             break;
         
         // 7XNN - ADD Vx, byte
         case 0x7:
-            printf("add v%1x, %2x\n", inst.X, inst.NN);
+            printf("add v%01x, %02x", inst.X, inst.NN);
             break;
         
         case 0x8:
             switch (inst.N) {
                 // 8XY0 - LD Vx, Vy
                 case 0x0:
-                    printf("ld v%1x, v%1x\n", inst.X, inst.Y);
+                    printf("ld v%01x, v%01x", inst.X, inst.Y);
                     break;
 
                 // 8XY1 - OR Vx, Vy
                 case 0x1:
-                    printf("or v%1x, v%1x\n", inst.X, inst.Y);
+                    printf("or v%01x, v%01x", inst.X, inst.Y);
                     break;
 
                 // 8XY2 - AND Vx, Vy
                 case 0x2:
-                    printf("and v%1x, v%1x\n", inst.X, inst.Y);
+                    printf("and v%01x, v%01x", inst.X, inst.Y);
                     break;
 
                 // 8XY3 - XOR Vx, Vy
                 case 0x3:
-                    printf("xor v%1x, v%1x\n", inst.X, inst.Y);
+                    printf("xor v%01x, v%01x", inst.X, inst.Y);
                     break;
 
                 // 8XY4 - ADD Vx, Vy
                 case 0x4:
-                    printf("add v%1x, v%1x\n", inst.X, inst.Y);
+                    printf("add v%01x, v%01x", inst.X, inst.Y);
                     break;
 
                 // 8XY5 - SUB Vx, Vy
                 case 0x5:
-                    printf("sub v%1x, v%1x\n", inst.X, inst.Y);
+                    printf("sub v%01x, v%01x", inst.X, inst.Y);
                     break;
 
                 // 8XY6 - SHR Vx {, Vy}
@@ -474,109 +455,119 @@ void Chip8::debug_inst() {
 
                 // 8XY7 - SUBN Vx, Vy
                 case 0x7:
-                    printf("subn v%1x, v%1x\n", inst.X, inst.Y);
+                    printf("subn v%01x, v%01x", inst.X, inst.Y);
                     break;
 
                 // 8XYE - SHL Vx {, Vy}
                 case 0xE:
                     
                     break;
+                
+                default:
+                    invalid_opcode = true;
             }
             break;
 
-            // 9XY0 - SNE Vx, Vy
-            case 0x9:
-                printf("sne V%1x, V%1x\n", inst.X, inst.Y);
-                break;
+        // 9XY0 - SNE Vx, Vy
+        case 0x9:
+            printf("sne V%01x, V%01x", inst.X, inst.Y);
+            break;
 
-            // ANNN- LD I, addr
-            case 0xA:
-                printf("ld %3x, %3x\n", I, inst.NNN);
-                break;
+        // ANNN- LD I, addr
+        case 0xA:
+            printf("ld %03x, %03x", I, inst.NNN);
+            break;
+        
+        // BNNN- JP V0, addr
+        case 0xB:
+            printf("jp v0, %03x", inst.NNN);
+            break;
+
+        // CXNN - RND Vx, byte
+        case 0xC:
+            printf("rnd %01x, %02x", inst.X, inst.NN);
+            break;
+
+        // DXYN - DRW Vx, Vy, nibble
+        case 0xD:
+            printf("drw V%01x, V%01x, %01x", inst.X, inst.Y, inst.N);
+            break;
+        
+        case 0xE:
+            switch (inst.NN) {
+                // EX9E - SKP Vx
+                case 0x9E:
+                    printf("skp v%01x", inst.X );
+                    break;
+
+                // EXA1 - SKNP Vx
+                case 0xA1:
+                    printf("sknp v%01x", inst.X);
+                    break;
+                
+                default:
+                    invalid_opcode = true;
+            }
+            break;
+
+        case 0xF:
+            switch (inst.NN) {
+                // FX07 - LD Vx, DT
+                case 0x07:
+                    printf("ld v%01x, %02x", inst.X, delay_timer);
+                    break;
+                
+                // FX0A - LD Vx, K
+                case 0x0A:
+                    printf("ld v%01x, k", inst.X);
+                    break;
+
+                // FX15 - LD DT, Vx
+                case 0x15:
+                    printf("ld %02x, v%01x", delay_timer, inst.X);
+                    break;
+                
+                // FX18 - LD ST, Vx
+                case 0x18:
+                    printf("ld %02x, v%01x", sound_timer, inst.X);
+                    break;
+
+                // FX1E - LD I, Vx
+                case 0x1E:
+                    printf("ld %03x, v%01x", I, inst.X);
+                    break;
+                
+                // FX29 - LD F, Vx
+                case 0x29:
+                    printf("ld f, v%01x", inst.X);
+                    break;
+                
+                // FX33 - LD B, Vx
+                case 0x33:
+                    printf("ld b, v%01x", inst.X);
+                    break;
+                
+                // FX55 - LD [I], Vx
+                case 0x55:
+                    printf("ld [%03x], v%01x", I, inst.X);
+                    break;
+                
+                // FX65 - LD Vx, [I]
+                case 0x65:
+                    printf("ld v%01x, [%03x]", inst.X, I);
+                    break;
+                
+                default:
+                    invalid_opcode = true;
+            }
+            break;
             
-            // BNNN- JP V0, addr
-            case 0xB:
-                printf("jp v0, %3x\n", inst.NNN);
-                break;
-
-            // CXNN - RND Vx, byte
-            case 0xC:
-                printf("rnd %1x, %2x\n", inst.X, inst.NN);
-                break;
-
-            // DXYN - DRW Vx, Vy, nibble
-            case 0xD:
-                printf("drw V%1x, V%1x, %1x\n", inst.X, inst.Y, inst.N);
-                break;
-            
-            case 0xE:
-                switch (inst.NN) {
-                    // EX9E - SKP Vx
-                    case 0x9E:
-                        printf("skp v%1x\n", inst.X );
-                        break;
-
-                    // EXA1 - SKNP Vx
-                    case 0xA1:
-                        printf("sknp v%1x\n", inst.X);
-                        break;
-                }
-                break;
-
-            case 0xF:
-                switch (inst.NN) {
-                    // FX07 - LD Vx, DT
-                    case 0x07:
-                        printf("ld v%1x, %2x\n", inst.X, delay_timer);
-                        break;
-                    
-                    // FX0A - LD Vx, K
-                    case 0x0A:
-                        printf("ld v%1x, k\n", inst.X);
-                        break;
-
-                    // FX15 - LD DT, Vx
-                    case 0x15:
-                        printf("ld %2x, v%1x\n", delay_timer, inst.X);
-                        break;
-                    
-                    // FX18 - LD ST, Vx
-                    case 0x18:
-                        printf("ld %2x, v%1x\n", sound_timer, inst.X);
-                        break;
-
-                    // FX1E - LD I, Vx
-                    case 0x1E:
-                        printf("ld %3x, v%1x\n", I, inst.X);
-                        break;
-                    
-                    // FX29 - LD F, Vx
-                    case 0x29:
-                        printf("ld f, v%1x\n", inst.X);
-                        break;
-                    
-                    // FX33 - LD B, Vx
-                    case 0x33:
-                        printf("ld b, v%1x\n", inst.X);
-                        break;
-                    
-                    // FX55 - LD [I], Vx
-                    case 0x55:
-                        printf("ld [%3x], v%1x\n", I, inst.X);
-                        break;
-                    
-                    // FX65 - LD Vx, [I]
-                    case 0x65:
-                        printf("ld v%1x, [%3x]\n", inst.X, I);
-                        break;
-                }
-                break;
+        default:
+            invalid_opcode = true;
     }
-}
 
-void Chip8::print_regs() {
-    printf("[PC]: %03X [SP]: %03X [I]: %03X\n", PC, SP, I);
-    for (int i = 0; i < 16; i++)
-        printf("[V%X]: %02X ", i, V[i]);
-    printf("\n\n");
+    if (invalid_opcode)
+        printf("%sInvalid opcode", light_red);
+    printf("%s\n", reset_color);
 }
+#endif

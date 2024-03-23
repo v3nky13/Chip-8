@@ -1,6 +1,8 @@
 #include <iostream>
+
 #include "../include/Chip8.h"
 #include "../include/Emulator.h"
+#include "../include/Assembler.h"
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
