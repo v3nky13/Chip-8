@@ -361,7 +361,7 @@ void Chip8::debug_inst() {
     const char *light_yellow = "\033[1;33m";
     const char *reset_color = "\033[0m";
 
-    printf("[%s%03x%s]: %s%04X%s -> %s", light_yellow, PC - 2, reset_color, light_blue, inst.opcode, reset_color, light_green);
+    printf("[%s0x%03X%s]: %s%04X%s -> %s", light_yellow, PC - 2, reset_color, light_blue, inst.opcode, reset_color, light_green);
 
     switch (inst.category) {
         case 0x0:
