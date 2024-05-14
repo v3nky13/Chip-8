@@ -18,7 +18,7 @@ void audio_callback(void *userdata, u8 *stream, i32 len) {
     // If the current chunk of audio for the square wave is the crest of the wave, 
     //   this will add the volume, otherwise it is the trough of the wave, and will add
     //   "negative" volume
-    for (int i = 0; i < len / 2; i++)
+    for (i32 i = 0; i < len / 2; i++)
         audio_data[i] = ((running_sample_index++ / half_square_wave_period) % 2) ?
                         config->volume : 
                         -config->volume;
@@ -31,8 +31,8 @@ bool init_sdl(sdl_t *sdl, config_t *config) {
         return false;
     }
 
-    sdl->window = SDL_CreateWindow("CHIP8 Emulator", SDL_WINDOWPOS_CENTERED, 
-                                   SDL_WINDOWPOS_CENTERED, 
+    sdl->window = SDL_CreateWindow("CHIP8 Emulator", SDL_WINDOWPOS_CENTERED,
+                                   SDL_WINDOWPOS_CENTERED,
                                    config->window_width * config->scale_factor,
                                    config->window_height * config->scale_factor,
                                    0);
@@ -49,12 +49,12 @@ bool init_sdl(sdl_t *sdl, config_t *config) {
 
     // Init Audio stuff
     sdl->want = (SDL_AudioSpec) {
-        .freq = 44100,          // 44100hz "CD" quality
-        .format = AUDIO_S16LSB, // Signed 16 bit little endian
-        .channels = 1,          // Mono, 1 channel
+        .freq = 44100,              // 44100hz "CD" quality
+        .format = AUDIO_S16LSB,     // Signed 16 bit little endian
+        .channels = 1,              // Mono, 1 channel
         .samples = 512,
         .callback = audio_callback,
-        .userdata = config,     // Userdata passed to audio callback
+        .userdata = config,         // Userdata passed to audio callback
     };
 
     sdl->dev = SDL_OpenAudioDevice(NULL, 0, &sdl->want, &sdl->have, 0);
@@ -94,10 +94,10 @@ void init_config(config_t *config) {
 
 // Clear screen / SDL Window to background color
 void clear_screen(const sdl_t sdl, const config_t config) {
-    const uint8_t r = (config.bg_color >> 24) & 0xFF;
-    const uint8_t g = (config.bg_color >> 16) & 0xFF;
-    const uint8_t b = (config.bg_color >>  8) & 0xFF;
-    const uint8_t a = (config.bg_color >>  0) & 0xFF;
+    const u8 r = (config.bg_color >> 24) & 0xFF;
+    const u8 g = (config.bg_color >> 16) & 0xFF;
+    const u8 b = (config.bg_color >>  8) & 0xFF;
+    const u8 a = (config.bg_color >>  0) & 0xFF;
 
     SDL_SetRenderDrawColor(sdl.renderer, r, g, b, a);
     SDL_RenderClear(sdl.renderer);
@@ -339,14 +339,14 @@ int main(int argc, char *argv[]) {
         if (state == PAUSED) continue;
 
         // Get time before running instructions 
-        const uint64_t start_frame_time = SDL_GetPerformanceCounter();
+        const u64 start_frame_time = SDL_GetPerformanceCounter();
         
         // Emulate CHIP8 Instructions for this emulator "frame" (60hz)
-        for (uint32_t i = 0; i < config.insts_per_second / 60; i++)
+        for (u32 i = 0; i < config.insts_per_second / 60; i++)
             chip8.emulate_inst(config);
 
         // Get time elapsed after running instructions
-        const uint64_t end_frame_time = SDL_GetPerformanceCounter();
+        const u64 end_frame_time = SDL_GetPerformanceCounter();
 
         // Delay for approximately 60hz/60fps (16.67ms) or actual time elapsed
         const double time_elapsed = (double) ((end_frame_time - start_frame_time) * 1000) / SDL_GetPerformanceFrequency();

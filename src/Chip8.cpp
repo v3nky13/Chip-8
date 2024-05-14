@@ -315,9 +315,9 @@ void Chip8::emulate_inst(const config_t &config) {
                 case 0x0A: {
                     // 0xFX0A: VX = get_key(); Await until a keypress, and store in VX
                     static bool any_key_pressed = false;
-                    static uint8_t key = 0xFF;
+                    static u8 key = 0xFF;
 
-                    for (uint8_t i = 0; key == 0xFF && i < sizeof keypad; i++) {
+                    for (u8 i = 0; key == 0xFF && i < sizeof keypad; i++) {
                         if (keypad[i]) {
                             key = i;                    // Save pressed key to check until it is released
                             any_key_pressed = true;
@@ -378,7 +378,7 @@ void Chip8::emulate_inst(const config_t &config) {
                 
                 // FX65 - LD Vx, [I]
                 case 0x65:
-                    for (int i = 0; i <= inst.X; i++)
+                    for (u32 i = 0; i <= inst.X; i++)
                         V[i] = ram[I + i];
                     I += inst.X + 1;
                     break;

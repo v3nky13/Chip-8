@@ -1,7 +1,2 @@
 .vscode
-Chip8.o
-Chip8_debug.o
-Emulator.o
-Assembler.o
-out.ch8
-chip8
+build
