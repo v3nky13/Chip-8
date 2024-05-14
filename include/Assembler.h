@@ -1,12 +1,19 @@
 #ifndef ASSEMBLER_H
 #define ASSEMBLER_H
 
-#include <fstream>
+#include <string>
+#include <unordered_map>
 #include "../include/Chip8.h"
 
 class Assembler {
-    bool get_line(FILE *source);
-    void assemble_load(FILE *source, Address *ram_load_addr);
+private:
+    std::unordered_map<std::string, Address> symtab;
+    std::string line, label, opcode, operands;
+
+    void get_line(FILE *source);
+
+public:
+    bool assemble(const char *file_path, const Address starting_addr);
 };
 
-#endif
+#endif // ASSEMBLER_H

@@ -1,17 +1,12 @@
 #ifndef CHIP8_H
 #define CHIP8_H
 
-#include <cstdint>
-
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint16_t Address;
-typedef int8_t i8;
-
+#include <SDL2/SDL.h>
+#include "Emulator.h"
+#include "types.h"
 
 class Chip8 {
-private:
+public:
     // registers
     Address PC;
     Address SP;
@@ -33,6 +28,9 @@ private:
     bool display[64 * 32];
     u32 pixel_color[64 * 32];
 
+    // Currently running ROM/Program
+    const char *rom_name;
+
     // currently executing instruction
     struct Instruction {
         u16 opcode;     // 16-bit instruction
@@ -44,7 +42,6 @@ private:
         u8 Y;           //  4-bit register identifier
     } inst;
 
-
     // stack operations
     void push(u16 data);
     u16 pop();
@@ -52,16 +49,14 @@ private:
     // log debugging info abt currently executing inst to window
     void debug_inst();
 
-public:
-    Chip8(const char *rom_loc);
+    // Initialize CHIP8 machine
+    bool init_chip8(const config_t *config, const char *rom_name);
 
     // Whether screen be updated? (yes/no)
     bool draw;
 
     // fetch, decode and execute a chip-8 instruction
-    void emulate_inst();
-
-    void print_regs(); // to be removed
+    void emulate_inst(const config_t &config);
 };
 
-#endif
+#endif // CHIP8_H

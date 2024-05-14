@@ -1,10 +1,13 @@
 #include <iostream>
-#include <cstring>
-#include <time.h>
+#include <algorithm>
 #include "../include/Chip8.h"
+#include "../include/Assembler.h"
 
-Chip8::Chip8(const char *rom_loc) {
-    const u8 font_sprites[] = {
+// Initialize CHIP8 machine
+bool Chip8::init_chip8(const config_t *config, const char *file_path) {
+    const Address entry_point = 0x200; // Chip-8 Roms will be loaded to 0x200
+
+    const u8 font[] = {
         0xF0, 0x90, 0x90, 0x90, 0xF0,   // 0
         0x20, 0x60, 0x20, 0x20, 0x70,   // 1
         0xF0, 0x10, 0xF0, 0x80, 0xF0,   // 2
@@ -23,34 +26,64 @@ Chip8::Chip8(const char *rom_loc) {
         0xF0, 0x80, 0xF0, 0x80, 0x80,   // F
     };
 
-    // init entire chip8 machine
+    // Initialize entire Chip-8 machine
     memset(this, 0, sizeof(Chip8));
 
-    // load font sprites to ram at address 0x000
-    memcpy(ram, font_sprites, sizeof(font_sprites));
+    // Load font 
+    memcpy(&ram, font, sizeof(font));
 
-    const u16 entry_point = 0x200;
+    u32 file_path_len = strlen(file_path) + 1;
+    char rom_name[std::max((u32) 8, file_path_len)];
 
-    FILE *rom = fopen(rom_loc, "rb");
+    if (strncmp(file_path + file_path_len - 5, ".ch8", 4)) {
+        // Assemble the program
+        Assembler assembler;
+        if (!assembler.assemble(file_path, entry_point)) {
+            SDL_Log("Couldn't assemble the program %s\n", file_path);
+            return false;
+        }
 
-    if (!rom) {
-        printf("Rom file at %s is invalid or doesn't exist\n", rom_loc);
+        // Assembler assembles the program to out.ch8
+        strncpy(rom_name, "out.ch8", 8);
+    } else {
+        strncpy(rom_name, file_path, file_path_len);
     }
 
+    // Open ROM file
+    FILE *rom = fopen(rom_name, "rb");
+
+    if (!rom) {
+        SDL_Log("Rom file %s is invalid or does not exist\n", rom_name);
+        return false;
+    }
+
+    // Get/check rom size
     fseek(rom, 0, SEEK_END);
     const size_t rom_size = ftell(rom);
+    const size_t max_size = sizeof ram - entry_point;
     rewind(rom);
+
+    if (rom_size > max_size) {
+        SDL_Log("Rom file %s is too big! Rom size: %llu, Max size allowed: %llu\n",
+                rom_name, (long long unsigned) rom_size, (long long unsigned) max_size);
+        return false;
+    }
+
+    // Load ROM
+    if (fread(&ram[entry_point], rom_size, 1, rom) != 1) {
+        SDL_Log("Could not read Rom file %s into CHIP8 memory\n", rom_name);
+        return false;
+    }
+
+    fclose(rom);
     
-    if (fread(&ram[entry_point], rom_size, 1, rom) != 1)
-        printf("Couldn't load rom file into memory");
+    // Set Chip-8 machine defaults
+    this->rom_name = rom_name;
+    PC = entry_point;    // Start program counter at ROM entry point
+    SP = 15;             // Empty stack
+    memset(&pixel_color, config->bg_color, sizeof pixel_color); // Init pixels to bg color
 
-    if (rom) fclose(rom);
-
-    // set chip8 machine defaults
-    PC = entry_point;   // Start PC at ROM entry point
-    SP = 15;            // Empty stack
-
-    srand(time(NULL));
+    return true;    // Success
 }
 
 void Chip8::push(u16 data) {
@@ -65,19 +98,19 @@ u16 Chip8::pop() {
     return stack[SP++];
 }
 
-void Chip8::emulate_inst() {
-    // fetch, decode and execute a chip-8 instruction
+void Chip8::emulate_inst(const config_t &config) {
+    // Fetch, Decode and Execute a Chip-8 instruction
 
     // TODO:
     // FX0A - wait for key input
     // chip8 variant changes for the following (read guide & queso):
     // 8XY1, 8XY2, 8XY3, 8XY6, 8XYE, BNNN, FX55, FX65
 
-    // fetch
+    // Fetch
     inst.opcode = (ram[PC] << 8) + ram[PC + 1];
     PC += 2;
 
-    // decode
+    // Decode
     inst.category = inst.opcode >> 12;
     inst.NNN = inst.opcode & 0x0FFF;
     inst.NN = inst.opcode & 0x00FF;
@@ -85,21 +118,11 @@ void Chip8::emulate_inst() {
     inst.X = (inst.opcode & 0x0F00) >> 8;
     inst.Y = (inst.opcode & 0x00F0) >> 4;
 
-    // if (draw) {
-    //     draw = false;
-    //     std::system("clear");
-    //     for (int i = 0; i < 32; i++) {
-    //         for (int j = 0; j < 64; j++)
-    //             printf("%c ", display[i * 64 + j] ? '*': ' ');
-    //         printf("\n");
-    //     }
-    // }
-
     #ifdef DEBUG
     debug_inst();
     #endif
 
-    // execute
+    // Execute
     switch (inst.category) {
         case 0x0:
             switch (inst.NNN) {
@@ -236,8 +259,8 @@ void Chip8::emulate_inst() {
 
         // DXYN - DRW Vx, Vy, nibble
         case 0xD: {
-            u8 xc = V[inst.X] % 64; // 64 and 32 to be changed to emulator ht and wh
-            u8 yc = V[inst.Y] % 32;
+            u8 xc = V[inst.X] % config.window_width;
+            u8 yc = V[inst.Y] % config.window_height;
             const u8 org_xc = xc;
 
             V[0xF] = 0;
@@ -289,21 +312,33 @@ void Chip8::emulate_inst() {
                     break;
                 
                 // FX0A - LD Vx, K
-                case 0x0A:
-                    printf("this wont work dumbass\n");
+                case 0x0A: {
+                    // 0xFX0A: VX = get_key(); Await until a keypress, and store in VX
+                    static bool any_key_pressed = false;
+                    static uint8_t key = 0xFF;
 
-                    // --- A brain rotten idea for this part ---
+                    for (uint8_t i = 0; key == 0xFF && i < sizeof keypad; i++) {
+                        if (keypad[i]) {
+                            key = i;                    // Save pressed key to check until it is released
+                            any_key_pressed = true;
+                            break;
+                        }
+                    }
 
-                    // func (v *VM) insLDxK(reg uint8) {
-                    //     if len(v.Keys) > 0 {
-                    //         // Get last key pressed if there are multiple and exit the PC loop
-                    //         v.registers[reg] = v.Keys[0]
-                    //         return
-                    //     }
-                    //     // Madness, *decrement* the PC to keep the fetch loop waiting here
-                    //     v.pc -= 2
-                    // }
-
+                    // If no key has been pressed yet, keep getting the current opcode & running this instruction
+                    if (!any_key_pressed) {
+                        PC -= 2; 
+                    } else {
+                        // A key has been pressed, also wait until it is released to set the key in VX
+                        if (keypad[key]) {              // "Busy loop" CHIP8 emulation until key is released
+                            PC -= 2;
+                        } else {
+                            V[inst.X] = key;            // VX = key 
+                            key = 0xFF;                 // Reset key to not found 
+                            any_key_pressed = false;    // Reset to nothing pressed yet
+                        }
+                    }
+                }
                     break;
 
                 // FX15 - LD DT, Vx
