@@ -44,7 +44,7 @@ bool Chip8::init_chip8(const config_t *config, const char *file_path) {
         }
 
         // Assembler assembles the program to out.ch8
-        strncpy(rom_name, "out.ch8", 8);
+        strncpy(rom_name, "build/out.ch8", 14);
     } else {
         strncpy(rom_name, file_path, file_path_len);
     }
@@ -102,7 +102,6 @@ void Chip8::emulate_inst(const config_t &config) {
     // Fetch, Decode and Execute a Chip-8 instruction
 
     // TODO:
-    // FX0A - wait for key input
     // chip8 variant changes for the following (read guide & queso):
     // 8XY1, 8XY2, 8XY3, 8XY6, 8XYE, BNNN, FX55, FX65
 

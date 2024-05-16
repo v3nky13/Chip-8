@@ -83,12 +83,12 @@ void init_config(config_t *config) {
         .fg_color = 0xFFFFFFFF,         // WHITE
         .bg_color = 0x000000FF,         // BLACK
         .scale_factor = 20,             // Default resolution will be 1280x640
-        .pixel_outlines = true,         // Draw pixel "outlines" by default
+        .pixel_outlines = false,         // Draw pixel "outlines" by default
         .insts_per_second = 700,        // Number of instructions to emulate in 1 second (clock rate of CPU)
         .square_wave_freq = 440,        // 440hz for middle A
         .audio_sample_rate = 44100,     // CD quality, 44100hz
         .volume = 3000,                 // INT16_MAX would be max volume
-        .current_extension = CHIP8,     // Set default quirks/extension to plain OG Chip-8
+        .current_extension = SUPERCHIP8,     // Set default quirks/extension to plain OG Chip-8
     };
 }
 

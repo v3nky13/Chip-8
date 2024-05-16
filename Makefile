@@ -37,6 +37,6 @@ $(BUILD_DIR)/Chip8_debug.o: $(SRC_DIR)/Chip8.cpp | $(BUILD_DIR)
 
 # Clean up build artifacts
 clean:
-	rm -f $(BUILD_DIR)/*.o $(BUILD_DIR)/chip8
+	rm -f $(BUILD_DIR)/*.o $(BUILD_DIR)/out.ch8 $(BUILD_DIR)/chip8
 
 .PHONY: all clean debug
