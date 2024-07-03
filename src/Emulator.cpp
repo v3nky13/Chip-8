@@ -1,7 +1,9 @@
 #include <iostream>
 #include <cstring>
+#include <string>
 #include "../include/Chip8.h"
 #include "../include/Emulator.h"
+#include "../include/INIReader.h"
 
 // SDL Audio callback
 // Fill out stream/audio buffer with data
@@ -13,8 +15,7 @@ void audio_callback(void *userdata, u8 *stream, i32 len) {
     const i32 square_wave_period = config->audio_sample_rate / config->square_wave_freq;
     const i32 half_square_wave_period = square_wave_period / 2;
 
-    // We are filling out 2 bytes at a time (i16), len is in bytes,
-    //   so divide by 2
+    // We are filling out 2 bytes at a time (i16), len is in bytes, so divide by 2
     // If the current chunk of audio for the square wave is the crest of the wave, 
     //   this will add the volume, otherwise it is the trough of the wave, and will add
     //   "negative" volume
@@ -83,13 +84,38 @@ void init_config(config_t *config) {
         .fg_color = 0xFFFFFFFF,         // WHITE
         .bg_color = 0x000000FF,         // BLACK
         .scale_factor = 20,             // Default resolution will be 1280x640
-        .pixel_outlines = false,         // Draw pixel "outlines" by default
+        .pixel_outlines = false,        // Draw pixel "outlines" by default
         .insts_per_second = 700,        // Number of instructions to emulate in 1 second (clock rate of CPU)
         .square_wave_freq = 440,        // 440hz for middle A
         .audio_sample_rate = 44100,     // CD quality, 44100hz
         .volume = 3000,                 // INT16_MAX would be max volume
-        .current_extension = SUPERCHIP8,     // Set default quirks/extension to plain OG Chip-8
+        .current_extension = CHIP8,     // Set default quirks/extension to plain OG Chip-8
     };
+
+    INIReader reader("config.ini");
+
+    if (reader.ParseError() < 0) {
+        SDL_Log("No config file found!\n");
+        return;
+    }
+
+    std::string str = reader.Get("Display", "window_scale", "20");
+    config->scale_factor = std::stoi(str);
+
+    str = reader.Get("Display", "theme", "White");
+    if (str == "Green") {
+        config->fg_color = 0x00FF00FF;
+    } else if (str == "Amber") {
+        config->fg_color = 0xFFBF00FF;
+    } else if (str == "BlueByte") {
+        config->fg_color = 0x000000FF;
+        config->bg_color = 0x0000FFFF;
+    } else if (str == "Negative") {
+        config->fg_color = 0x000000FF;
+        config->bg_color = 0xFFFFFFFF;
+    }
+
+    
 }
 
 // Clear screen / SDL Window to background color
@@ -199,8 +225,8 @@ void handle_input(Chip8 *chip8, config_t *config, emu_state_t *state) {
                         break;
 
                     case SDLK_j:
-                        // 'j': Decrease color lerp rate
-                        
+                        // 'j': init_config
+                        init_config(config);
                         break;
 
                     case SDLK_k:

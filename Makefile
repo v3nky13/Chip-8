@@ -8,9 +8,9 @@ SRC_DIR = src
 BUILD_DIR = build
 
 # Source and object files
-SRCS = $(SRC_DIR)/Chip8.cpp $(SRC_DIR)/Emulator.cpp $(SRC_DIR)/Assembler.cpp
-OBJS = $(BUILD_DIR)/Chip8.o $(BUILD_DIR)/Emulator.o $(BUILD_DIR)/Assembler.o
-DEBUG_OBJS = $(BUILD_DIR)/Chip8_debug.o $(BUILD_DIR)/Emulator.o $(BUILD_DIR)/Assembler.o
+SRCS = $(SRC_DIR)/Chip8.cpp $(SRC_DIR)/Emulator.cpp $(SRC_DIR)/Assembler.cpp $(SRC_DIR)/ini.c $(SRC_DIR)/INIReader.cpp 
+OBJS = $(BUILD_DIR)/Chip8.o $(BUILD_DIR)/Emulator.o $(BUILD_DIR)/Assembler.o $(BUILD_DIR)/ini.o $(BUILD_DIR)/INIReader.o
+DEBUG_OBJS = $(BUILD_DIR)/Chip8_debug.o $(BUILD_DIR)/Emulator.o $(BUILD_DIR)/Assembler.o $(BUILD_DIR)/ini.o $(BUILD_DIR)/INIReader.o
 
 # Default target
 all: $(BUILD_DIR) chip8

@@ -28,11 +28,13 @@ def saveConfig():
     # Save configuration to config file
     with open('config.ini', 'w') as configfile:
         config.write(configfile)
+    
+    info_label.config(text="Configuration saved successfully!")
+    root.after(3000, lambda : info_label.config(text=""))
 
 root = tk.Tk()
-root.geometry()
 root.resizable(False, False)
-root.title("Emulator configuration")
+root.title("Configure Chip-8 Emulator")
 
 #adding labelframes
 display_frame = LabelFrame(root, text='Display', width=300, height=200)
@@ -52,7 +54,7 @@ debug_frame.grid(row=0, column=1, padx=10, pady=10, sticky='nsew')
 
 #adding save button
 btn_1 = tk.Button(root, text= "Save", width=10, font=("Arial", 14), command=saveConfig)
-btn_1.grid(row=2, column =1, padx=20, pady=20, sticky='se')
+btn_1.grid(row=2, column =1, padx=20, pady=20, sticky='s')
 
 # Adding label1(scale)
 scale_label = ttk.Label(display_frame, text="Scale:")
@@ -68,7 +70,7 @@ label2 = ttk.Label(display_frame, text="Theme:")
 label2.grid(row=1, column=0, padx=5, pady=5)
 
 #Adding dropdown menu
-options = ["", "White", "Green", "Amber", "Game boy", "80s"]
+options = ["", "White", "Green", "Amber", "BlueByte", "Negative"]
 selected_option1 = tk.StringVar()
 selected_option1.set(options[0])
 dropdown1 = ttk.OptionMenu(display_frame, selected_option1, *options)
@@ -151,6 +153,10 @@ selected_value2 = tk.StringVar()
 selected_value2.set(700)
 speed_entry = ttk.Spinbox(perf_frame, from_=1, to=1500, width = 10, textvariable=selected_value2)
 speed_entry.grid(row=1, column=1, padx=5, pady=5,)
+
+# label for acknowledgement of saving config
+info_label = ttk.Label(root)
+info_label.grid(row=2, column=1, padx=5, pady=15, sticky='n')
 
 # Add sections and key-value pairs
 config['Display'] = {
