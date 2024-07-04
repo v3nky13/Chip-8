@@ -44,16 +44,23 @@ bool Assembler::assemble(const char *file_path, const Address starting_addr) {
     FILE *output = fopen("build/out.ch8", "wb");
 
     Address LOCCTR = starting_addr;
+    u32 line_no = 1;
     
     // pass 1
     while (get_line(source)) {
-        if (label[0] != '\0')
+        if (label[0] != '\0') {
+            if (symtab.find(label) != symtab.end()) {
+                SDL_Log("line %d: Duplicate label used: %s\n", line_no, label);
+                return false;
+            }
             symtab[label] = LOCCTR;
+        }
         LOCCTR += 2;
+        line_no++;
     }
 
     rewind(source);
-    u32 line_no = 1;
+    line_no = 1;
 
     // pass 2
     while (get_line(source)) {
@@ -68,7 +75,7 @@ bool Assembler::assemble(const char *file_path, const Address starting_addr) {
             if (it != symtab.end()) {
                 inst = 0x1000 + it->second;
             } else {
-                SDL_Log("line %d: Undefined label used %s\n", line_no, operand);
+                SDL_Log("line %d: Undefined label used: %s\n", line_no, operand);
                 return false;
             }
         } else if (!strcmp(opcode, "jpr")) {
@@ -80,7 +87,7 @@ bool Assembler::assemble(const char *file_path, const Address starting_addr) {
             if (it != symtab.end()) {
                 inst = 0x1000 + it->second;
             } else {
-                SDL_Log("line %d: Undefined label used %s\n", line_no, operand);
+                SDL_Log("line %d: Undefined label used: %s\n", line_no, operand);
                 return false;
             }
         } else if (!strcmp(opcode, "call")) {
@@ -88,7 +95,7 @@ bool Assembler::assemble(const char *file_path, const Address starting_addr) {
             if (it != symtab.end()) {
                 inst = 0x2000 + it->second;
             } else {
-                SDL_Log("line %d: Undefined label used %s\n", line_no, operand);
+                SDL_Log("line %d: Undefined label used: %s\n", line_no, operand);
                 return false;
             }
         } else if (!strcmp(opcode, "se")) {
@@ -277,7 +284,7 @@ bool Assembler::assemble(const char *file_path, const Address starting_addr) {
             if (it != symtab.end()) {
                 inst = 0xA000 + it->second;
             } else {
-                SDL_Log("line %d: Undefined label used %s\n", line_no, operand);
+                SDL_Log("line %d: Undefined label used: %s\n", line_no, operand);
                 return false;
             }
         } else if (!strcmp(opcode, "ldd")) {
