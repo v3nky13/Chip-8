@@ -135,7 +135,7 @@ void init_config(config_t *config) {
         config->square_wave_freq = 494;
     
     str = reader.Get("Performance", "speed", "700");
-    config->insts_per_second = atoi(str.c_str());
+    config->insts_per_second = std::stoi(str);
 
     str = reader.Get("Performance", "refresh_rate", "60hz");
     if (str == "30hz")
@@ -246,8 +246,9 @@ void update_screen(const sdl_t sdl, const config_t config, Chip8 *chip8) {
 // 456D          qwer
 // 789E          asdf
 // A0BF          zxcv
-void handle_input(Chip8 *chip8, config_t *config, emu_state_t *state) {
+void handle_input(Chip8 *chip8, config_t *config, emu_state_t *state, sdl_t *sdl, const char *file_path) {
     SDL_Event event;
+    u32 prev_scale_factor = config->scale_factor;
 
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
@@ -272,22 +273,22 @@ void handle_input(Chip8 *chip8, config_t *config, emu_state_t *state) {
                             puts("==== PAUSED ====");
                         } else {
                             *state = RUNNING; // Resume
+                            puts("==== RESUMED ====");
                         }
                         break;
 
+                    case SDLK_MINUS:
+                        // '-': Reset Chip-8 machine for the current ROM
+                        chip8->init_chip8(config, file_path);
+                        break;
+
                     case SDLK_EQUALS:
-                        // '=': Reset CHIP8 machine for the current ROM
-                        chip8->init_chip8(config, chip8->rom_name);
-                        break;
-
-                    case SDLK_j:
-                        // 'j': init_config
+                        // '=': Update new to new config
                         init_config(config);
-                        break;
-
-                    case SDLK_k:
-                        // 'k': Increase color lerp rate
-                        
+                        if (prev_scale_factor != config->scale_factor)
+                            SDL_SetWindowSize(sdl->window,
+                                    config->window_width * config->scale_factor,
+                                    config->window_height * config->scale_factor);
                         break;
 
                     case SDLK_o:
@@ -423,7 +424,7 @@ int main(int argc, char *argv[]) {
     // Main emulator loop
     while (state != QUIT) {
         // Handle user input
-        handle_input(&chip8, &config, &state);
+        handle_input(&chip8, &config, &state, &sdl, file_path);
 
         if (state == PAUSED) continue;
 
