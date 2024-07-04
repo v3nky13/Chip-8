@@ -15,7 +15,7 @@ void audio_callback(void *userdata, u8 *stream, i32 len) {
     const i32 square_wave_period = config->audio_sample_rate / config->square_wave_freq;
     const i32 half_square_wave_period = square_wave_period / 2;
 
-    // We are filling out 2 bytes at a time (i16), len is in bytes, so divide by 2
+    // Filling out 2 bytes at a time (i16), len is in bytes, so divide by 2
     // If the current chunk of audio for the square wave is the crest of the wave, 
     //   this will add the volume, otherwise it is the trough of the wave, and will add
     //   "negative" volume
