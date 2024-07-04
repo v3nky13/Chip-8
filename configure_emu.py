@@ -20,8 +20,8 @@ def saveConfig():
     config['Debug_logs']['instruction_execution'] = 'true' if checkbox_var1.get() else 'false'
     config['Debug_logs']['register_changes'] = 'true' if checkbox_var2.get() else 'false'
     config['Debug_logs']['memory_access']  = 'true' if checkbox_var3.get() else 'false'
-    config['Debug_logs']['stack_operations'] = 'true' if checkbox_var4.get() else 'false'
-    config['Debug_logs']['input_keys'] = 'true' if checkbox_var5.get() else 'false'
+    config['Debug_logs']['input_keys'] = 'true' if checkbox_var4.get() else 'false'
+    config['Debug_logs']['stack_operations'] = 'true' if checkbox_var5.get() else 'false'
     config['Debug_logs']['timers'] = 'true' if checkbox_var6.get() else 'false'
     config['Debug_logs']['performance_metrics'] = 'true' if checkbox_var7.get() else 'false'
 
@@ -110,7 +110,7 @@ checkbox = ttk.Checkbutton(debug_frame, text="Instruction execution", variable=c
 checkbox.grid(row=0, column=0, padx=5, pady=5, rowspan=2, sticky='w')
 
 checkbox_var2 = tk.BooleanVar()
-checkbox = ttk.Checkbutton(debug_frame, text="Register change", variable=checkbox_var2)
+checkbox = ttk.Checkbutton(debug_frame, text="Register changes", variable=checkbox_var2)
 checkbox.grid(row=2, column=0, padx=5, pady=5, rowspan=2, sticky='w' )
 
 checkbox_var3 = tk.BooleanVar()
@@ -118,15 +118,15 @@ checkbox = ttk.Checkbutton(debug_frame, text="Memory access", variable=checkbox_
 checkbox.grid(row=4, column=0, padx=5, pady=5, rowspan=2, sticky='w')
 
 checkbox_var4 = tk.BooleanVar()
-checkbox = ttk.Checkbutton(debug_frame, text="Input", variable=checkbox_var4)
+checkbox = ttk.Checkbutton(debug_frame, text="Input keys", variable=checkbox_var4)
 checkbox.grid(row=6, column=0, padx=5, pady=5, rowspan=2, sticky='w' )
 
 checkbox_var5 = tk.BooleanVar()
-checkbox = ttk.Checkbutton(debug_frame, text="Stack", variable=checkbox_var5)
+checkbox = ttk.Checkbutton(debug_frame, text="Stack operations", variable=checkbox_var5)
 checkbox.grid(row=0, column=2, padx=5, pady=5, rowspan=2, sticky='w' )
 
 checkbox_var6 = tk.BooleanVar()
-checkbox = ttk.Checkbutton(debug_frame, text="Timer", variable=checkbox_var6)
+checkbox = ttk.Checkbutton(debug_frame, text="Timers", variable=checkbox_var6)
 checkbox.grid(row=2, column=2, padx=5, pady=5, rowspan=2, sticky='w' )
 
 checkbox_var7 = tk.BooleanVar()
@@ -178,8 +178,8 @@ config['Debug_logs'] = {
     'instruction_execution': 'false',
     'register_changes': 'false',
     'memory_access': 'false',
-    'stack_operations': 'false',
     'input_keys': 'false',
+    'stack_operations': 'false',
     'timers': 'false',
     'performance_metrics': 'false'
 }
@@ -210,8 +210,8 @@ checkbox_var.set(config['Display']['pixel_boundary'] == 'true')
 checkbox_var1.set(config['Debug_logs']['instruction_execution'] == 'true')
 checkbox_var2.set(config['Debug_logs']['register_changes'] == 'true')
 checkbox_var3.set(config['Debug_logs']['memory_access'] == 'true')
-checkbox_var4.set(config['Debug_logs']['stack_operations'] == 'true')
-checkbox_var5.set(config['Debug_logs']['input_keys'] == 'true')
+checkbox_var4.set(config['Debug_logs']['input_keys'] == 'true')
+checkbox_var5.set(config['Debug_logs']['stack_operations'] == 'true')
 checkbox_var6.set(config['Debug_logs']['timers'] == 'true')
 checkbox_var7.set(config['Debug_logs']['performance_metrics'] == 'true')
 

@@ -38,6 +38,15 @@ struct config_t {
     u32 audio_sample_rate;              // Sample rate of audio e.g. 44100hz for CD quality
     i16 volume;                         // How loud or not is the sound
     extension_t current_extension;      // Current quirks/extension support for e.g. CHIP8 vs. SUPERCHIP
+    u8 refresh_rate;                    // refresh rate of screen
+    // Debug logs
+    bool instruction_execution;
+    bool register_changes;
+    bool memory_access;
+    bool stack_operations;
+    bool input_keys;
+    bool timers;
+    bool performance_metrics;
 };
 
 #endif // EMULATOR_H

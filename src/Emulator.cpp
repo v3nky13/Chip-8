@@ -90,6 +90,7 @@ void init_config(config_t *config) {
         .audio_sample_rate = 44100,     // CD quality, 44100hz
         .volume = 3000,                 // INT16_MAX would be max volume
         .current_extension = CHIP8,     // Set default quirks/extension to plain OG Chip-8
+        .refresh_rate = 60,             // Default refresh rate of CRT
     };
 
     INIReader reader("config.ini");
@@ -115,7 +116,60 @@ void init_config(config_t *config) {
         config->bg_color = 0xFFFFFFFF;
     }
 
+    str = reader.Get("Display", "pixel_boundary", "false");
+    if (str == "true")
+        config->pixel_outlines = true;
     
+    str = reader.Get("Sound", "note", "A");
+    if (str == "C")
+        config->square_wave_freq = 262;
+    else if (str == "D")
+        config->square_wave_freq = 294;
+    else if (str == "E")
+        config->square_wave_freq = 330;
+    else if (str == "F")
+        config->square_wave_freq = 349;
+    else if (str == "G")
+        config->square_wave_freq = 392;
+    else if (str == "B")
+        config->square_wave_freq = 494;
+    
+    str = reader.Get("Performance", "speed", "700");
+    config->insts_per_second = atoi(str.c_str());
+
+    str = reader.Get("Performance", "refresh_rate", "60hz");
+    if (str == "30hz")
+        config->refresh_rate = 30;
+    else if (str == "90hz")
+        config->refresh_rate = 90;
+    else if (str == "120hz")
+        config->refresh_rate = 120;
+    
+    str = reader.Get("Debug_logs", "instruction_execution", "false");
+    if (str == "true")
+        config->instruction_execution = true;
+    str = reader.Get("Debug_logs", "register_changes", "false");
+    if (str == "true")
+        config->register_changes = true;
+    str = reader.Get("Debug_logs", "memory_access", "false");
+    if (str == "true")
+        config->memory_access = true;
+    str = reader.Get("Debug_logs", "stack_operations", "false");
+    if (str == "true")
+        config->stack_operations = true;
+    str = reader.Get("Debug_logs", "input_keys", "false");
+    if (str == "true")
+        config->input_keys = true;
+    str = reader.Get("Debug_logs", "timers", "false");
+    if (str == "true")
+        config->timers = true;
+    str = reader.Get("Debug_logs", "performance_metrics", "false");
+    if (str == "true")
+        config->performance_metrics = true;
+
+    str = reader.Get("Extension", "vairant", "Standard");
+    if (str == "Super")
+        config->current_extension = SUPERCHIP8;
 }
 
 // Clear screen / SDL Window to background color
@@ -203,6 +257,8 @@ void handle_input(Chip8 *chip8, config_t *config, emu_state_t *state) {
                 break;
 
             case SDL_KEYDOWN:
+                if (config->input_keys)
+                    printf ("[KeyDown] KeyCode: %d\n", event.key.keysym.sym);
                 switch (event.key.keysym.sym) {
                     case SDLK_ESCAPE:
                         // Escape key; Exit window & End program
@@ -273,6 +329,8 @@ void handle_input(Chip8 *chip8, config_t *config, emu_state_t *state) {
                 break; 
 
             case SDL_KEYUP:
+                if (config->input_keys)
+                    printf ("[KeyUp] KeyCode: %d\n", event.key.keysym.sym);
                 switch (event.key.keysym.sym) {
                     // Map qwerty keys to CHIP8 keypad
                     case SDLK_1: chip8->keypad[0x1] = false; break;
@@ -306,7 +364,7 @@ void handle_input(Chip8 *chip8, config_t *config, emu_state_t *state) {
 }
 
 // Update CHIP8 delay and sound timers every 60hz
-void update_timers(const sdl_t sdl, Chip8 *chip8) {
+void update_timers(const sdl_t sdl, Chip8 *chip8, config_t config) {
     if (chip8->delay_timer > 0) 
         chip8->delay_timer--;
 
@@ -316,6 +374,9 @@ void update_timers(const sdl_t sdl, Chip8 *chip8) {
     } else {
         SDL_PauseAudioDevice(sdl.dev, 1); // Pause sound
     }
+
+    if (config.timers)
+        printf("Sound: %02X Delay: %02X\n", chip8->sound_timer, chip8->delay_timer);
 }
 
 // Final cleanup
@@ -357,6 +418,8 @@ int main(int argc, char *argv[]) {
     // Seed random number generator for a chip-8 inst
     srand(time(NULL));
 
+    f64 next_update_time = 1000.0 / config.refresh_rate;
+
     // Main emulator loop
     while (state != QUIT) {
         // Handle user input
@@ -368,16 +431,19 @@ int main(int argc, char *argv[]) {
         const u64 start_frame_time = SDL_GetPerformanceCounter();
         
         // Emulate CHIP8 Instructions for this emulator "frame" (60hz)
-        for (u32 i = 0; i < config.insts_per_second / 60; i++)
+        for (u32 i = 0; i < config.insts_per_second / config.refresh_rate; i++)
             chip8.emulate_inst(config);
 
         // Get time elapsed after running instructions
         const u64 end_frame_time = SDL_GetPerformanceCounter();
 
-        // Delay for approximately 60hz/60fps (16.67ms) or actual time elapsed
-        const double time_elapsed = (double) ((end_frame_time - start_frame_time) * 1000) / SDL_GetPerformanceFrequency();
+        const f64 time_elapsed = (f64) ((end_frame_time - start_frame_time) * 1000) / SDL_GetPerformanceFrequency();
 
-        SDL_Delay(16.67f > time_elapsed ? 16.67f - time_elapsed : 0);
+        if (config.performance_metrics)
+            printf("Time to execute %d instructions: %0.6fms\n", config.insts_per_second, time_elapsed);
+
+        // Delay for next update
+        SDL_Delay(next_update_time > time_elapsed ? next_update_time - time_elapsed : 0);
 
         // Update window with changes every 60hz
         if (chip8.draw) {
@@ -386,7 +452,7 @@ int main(int argc, char *argv[]) {
         }
         
         // Update delay & sound timers every 60hz
-        update_timers(sdl, &chip8);
+        update_timers(sdl, &chip8, config);
     }
 
     // Final cleanup

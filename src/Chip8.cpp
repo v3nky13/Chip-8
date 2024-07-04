@@ -107,6 +107,8 @@ void Chip8::emulate_inst(const config_t &config) {
 
     // Fetch
     inst.opcode = (ram[PC] << 8) + ram[PC + 1];
+    if (config.memory_access)
+        printf("Memory read at %04X\n", PC);
     PC += 2;
 
     // Decode
@@ -117,9 +119,8 @@ void Chip8::emulate_inst(const config_t &config) {
     inst.X = (inst.opcode & 0x0F00) >> 8;
     inst.Y = (inst.opcode & 0x00F0) >> 4;
 
-    #ifdef DEBUG
-    debug_inst();
-    #endif
+    if (config.instruction_execution)
+        debug_inst();
 
     // Execute
     switch (inst.category) {
@@ -134,6 +135,8 @@ void Chip8::emulate_inst(const config_t &config) {
                 // 00EE - RET
                 case 0x0EE:
                     PC = pop();
+                    if (config.stack_operations)
+                        printf("Stack pop\n");
                     break;
             }
             break;
@@ -146,6 +149,8 @@ void Chip8::emulate_inst(const config_t &config) {
         // 2NNN - CALL addr
         case 0x2:
             push(PC);
+            if (config.stack_operations)
+                printf("Stack push: %04X\n", PC);
             PC = inst.NNN;
             break;
 
@@ -266,6 +271,8 @@ void Chip8::emulate_inst(const config_t &config) {
 
             for (u8 i = 0; i < inst.N; i++) {
                 const u8 sprite_data = ram[I + i];
+                if (config.memory_access)
+                    printf("Memory read at %04X\n", I + i);
                 xc = org_xc;
                 
                 for (i8 j = 7; j >= 0; j--) {
@@ -366,12 +373,16 @@ void Chip8::emulate_inst(const config_t &config) {
                     ram[I] = V[inst.X] / 100;
                     ram[I + 1] = (V[inst.X] % 100) / 10;
                     ram[I + 2] = V[inst.X] % 10;
+                    if (config.memory_access)
+                        printf("Memory write at %04X\n", I);
                     break;
                 
                 // FX55 - LD [I], Vx
                 case 0x55:
                     for (u8 i = 0; i <= inst.X; i++)
                         ram[I + i] = V[i];
+                    if (config.memory_access)
+                        printf("Memory write at %04X\n", I);
                     I += inst.X + 1;
                     break;
                 
@@ -379,14 +390,18 @@ void Chip8::emulate_inst(const config_t &config) {
                 case 0x65:
                     for (u32 i = 0; i <= inst.X; i++)
                         V[i] = ram[I + i];
+                    if (config.memory_access)
+                        printf("Memory write at %04X\n", I);
                     I += inst.X + 1;
                     break;
             }
             break;
     }
+
+    if (config.register_changes)
+        debug_reg();
 }
 
-#ifdef DEBUG
 void Chip8::debug_inst() {
     bool invalid_opcode = false;
     const char *light_red = "\033[1;31m";
@@ -604,4 +619,11 @@ void Chip8::debug_inst() {
         printf("%sInvalid opcode", light_red);
     printf("%s\n", reset_color);
 }
-#endif
+
+void Chip8::debug_reg() {
+    printf("PC = %04X SP = %04X I = %04X\n", PC, SP, I);
+    printf("V = ");
+    for (u8 i = 0; i < 16; i++)
+        printf("%02X ", V[i]);
+    printf("\n");
+}

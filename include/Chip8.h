@@ -46,8 +46,9 @@ public:
     void push(u16 data);
     u16 pop();
 
-    // log debugging info abt currently executing inst to window
+    // Debug
     void debug_inst();
+    void debug_reg();
 
     // Initialize CHIP8 machine
     bool init_chip8(const config_t *config, const char *rom_name);
